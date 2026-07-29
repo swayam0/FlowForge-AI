@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { SettingsRepository } from '@/repositories/SettingsRepository';
 import { encryptionHelper } from '@/server/helpers/encryptionHelper';

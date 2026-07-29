@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { successResponse, errorResponse } from '../responseHelper';
 import connectToDatabase from '../../../utils/db';

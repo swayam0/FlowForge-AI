@@ -40,8 +40,8 @@ export function VersionComparisonTab({ workflowId }: VersionComparisonTabProps) 
     const nodesA = versionA.snapshot.nodes || [];
     const nodesB = versionB.snapshot.nodes || [];
 
-    const nodesMapA = new Map(nodesA.map((n: any) => [n.id, n]));
-    const nodesMapB = new Map(nodesB.map((n: any) => [n.id, n]));
+    const nodesMapA = new Map<string, any>(nodesA.map((n: any) => [n.id, n]));
+    const nodesMapB = new Map<string, any>(nodesB.map((n: any) => [n.id, n]));
 
     const added: any[] = [];
     const removed: any[] = [];

@@ -5,6 +5,7 @@ import { WorkflowRunRepository } from '@/repositories/WorkflowRunRepository';
 import { WorkflowRepository } from '@/repositories/WorkflowRepository';
 import { WorkflowRunModel } from '@/models/WorkflowRun';
 import { WorkflowVersionModel } from '@/models/WorkflowVersion';
+import { WorkflowStepType } from '@/types/common';
 
 vi.mock('@/utils/db', () => ({
   default: vi.fn().mockResolvedValue(true)
@@ -42,7 +43,7 @@ describe('API Routes: Runs', () => {
   it('POST /api/runs/[id]/resume should resume run', async () => {
     const workflow = await workflowRepo.create({ 
       name: 'Test', 
-      nodes: [{ id: 'start', type: 'STRUCTURED_INPUT', label: 'Start', position: { x: 0, y: 0 }, configuration: {} }], 
+      nodes: [{ id: 'start', type: WorkflowStepType.STRUCTURED_INPUT, label: 'Start', position: { x: 0, y: 0 }, configuration: {} }], 
       edges: [] 
     }, 'test');
     const version = await WorkflowVersionModel.findOne({ workflowId: workflow.id });

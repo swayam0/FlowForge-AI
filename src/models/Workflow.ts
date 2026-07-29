@@ -2,7 +2,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 import { Workflow, WorkflowNode, WorkflowEdge } from '../types/workflow';
 import { WorkflowStatus, WorkflowStepType } from '../types/common';
 
-export interface IWorkflow extends Omit<Workflow, 'id'>, Document {}
+export interface IWorkflow extends Omit<Workflow, 'id'>, Document { id: string; }
 
 const PositionSchema = new Schema({
   x: { type: Number, required: true },

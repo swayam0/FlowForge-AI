@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import { WorkflowVersion } from '../types/workflow';
 
-export interface IWorkflowVersion extends Omit<WorkflowVersion, 'id'>, Document {}
+export interface IWorkflowVersion extends Omit<WorkflowVersion, 'id'>, Document { id: string; }
 
 const WorkflowVersionSchema = new Schema<IWorkflowVersion>({
   workflowId: { type: String, required: true, index: true },

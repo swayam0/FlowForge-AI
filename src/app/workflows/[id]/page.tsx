@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 export default function WorkflowDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const unwrappedParams = use(params);
   const id = unwrappedParams.id;
-  const [activeTab, setActiveTab] = useState<'editor' | 'monitor'>('editor');
+  const [activeTab, setActiveTab] = useState<'editor' | 'monitor' | 'versions'>('editor');
   
   const { data: workflow, isLoading } = useQuery({
     queryKey: ['workflow', id],

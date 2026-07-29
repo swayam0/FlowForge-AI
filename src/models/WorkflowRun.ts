@@ -2,7 +2,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 import { WorkflowRun } from '../types/workflowRun';
 import { ExecutionStatus } from '../types/common';
 
-export interface IWorkflowRun extends Omit<WorkflowRun, 'id'>, Document {}
+export interface IWorkflowRun extends Omit<WorkflowRun, 'id'>, Document { id: string; }
 
 const WorkflowRunSchema = new Schema<IWorkflowRun>({
   workflowVersionId: { type: String, required: true, index: true },

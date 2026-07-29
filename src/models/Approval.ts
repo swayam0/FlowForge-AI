@@ -1,5 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose';
-import { Approval } from '../types/execution';
+import { Approval } from '../types/workflowRun';
 import { ApprovalStatus } from '../types/common';
 
 export interface IApproval extends Omit<Approval, 'id'>, Document {}

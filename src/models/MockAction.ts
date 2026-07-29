@@ -1,5 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose';
-import { MockAction } from '../types/execution';
+import { MockAction } from '../types/workflowRun';
 
 export interface IMockAction extends Omit<MockAction, 'id'>, Document {}
 

@@ -36,7 +36,6 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
     await connectToDatabase();
     
     const body = await request.json();
-    console.log(`[API PUT /workflows/:id] Updating workflow ID: ${params.id}`);
     
     const workflow = await workflowRepo.update(params.id, body);
     
@@ -45,7 +44,6 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
       return errorResponse('Workflow not found', null, 404);
     }
 
-    console.log(`[API PUT /workflows/:id] Success. Updated workflow ID:`, workflow.id);
     return successResponse(workflow.toJSON(), 'Workflow updated successfully');
   } catch (error) {
     console.error(`[API PUT /workflows/:id] Error updating workflow ID: ${params.id}`, error);

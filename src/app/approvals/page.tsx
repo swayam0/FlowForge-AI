@@ -3,23 +3,37 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { format } from 'date-fns';
-import { Check, X, Search, MoreVertical, Clock, User, CheckCircle } from 'lucide-react';
+import { Check, X, Search, MoreVertical, Clock, User, CheckCircle, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
 import { Dialog, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/Dialog';
 import { Input } from '../../components/ui/Input';
 import { toast } from 'sonner';
+import { cn } from '../../lib/utils';
 
-const MOCK_APPROVALS = [
-  { id: 'app-1', executionId: 'EX-90221', workflowName: 'Data_Pipeline_Alpha', reason: 'Anomaly detected in extraction layer - requires manual verification.', timestamp: Date.now() - 120000, status: 'PENDING', priority: 'HIGH' },
-  { id: 'app-2', executionId: 'EX-88412', workflowName: 'Model_Refinement_Beta', reason: 'Validation gate triggered: Model drift detected in prediction accuracy.', timestamp: Date.now() - 840000, status: 'PENDING', priority: 'MEDIUM' },
-  { id: 'app-3', executionId: 'EX-90119', workflowName: 'Ingest_Listener_01', reason: 'Scheduled maintenance override requested.', timestamp: Date.now() - 3600000, status: 'PENDING', priority: 'LOW' },
-];
+function EmptyState({ icon: Icon, title, description }: any) {
+  return (
+    <div className="flex flex-col items-center justify-center py-24 text-center bg-[#0a0a0a] rounded-xl border border-[#27272a] shadow-sm w-full">
+      <div className="h-20 w-20 rounded-3xl bg-[#111111] flex items-center justify-center mb-6 border border-[#27272a] shadow-inner">
+        <Icon className="h-10 w-10 text-green-500 opacity-80" />
+      </div>
+      <h3 className="text-xl font-bold text-primary mb-2 tracking-tight">{title}</h3>
+      <p className="text-sm text-on-surface-variant max-w-sm leading-relaxed">{description}</p>
+    </div>
+  );
+}
 
 export default function ApprovalsPage() {
-  const [approvals, setApprovals] = useState(MOCK_APPROVALS);
+  const { data: approvalsData, isLoading } = useQuery({
+    queryKey: ['approvals'],
+    queryFn: () => api.getApprovals(),
+  });
+
+  const approvals = approvalsData || [];
+  
   const [selectedApproval, setSelectedApproval] = useState<any>(null);
   const [comments, setComments] = useState('');
   const [actionType, setActionType] = useState<'APPROVED' | 'REJECTED' | null>(null);
+  const [filter, setFilter] = useState('ALL');
   const queryClient = useQueryClient();
 
   const handleActionClick = (approval: any, type: 'APPROVED' | 'REJECTED') => {
@@ -32,79 +46,100 @@ export default function ApprovalsPage() {
     if (!selectedApproval || !actionType) return;
     try {
       const approved = actionType === 'APPROVED';
-      if (!selectedApproval.id.startsWith('app-')) {
-        await api.submitApproval(selectedApproval.id, {
-          status: actionType,
-          comments,
-          reviewer: 'Admin User'
-        });
-      }
+      await api.submitApproval(selectedApproval.id, {
+        status: actionType,
+        comments,
+        reviewer: 'Admin User'
+      });
       
-      setApprovals(approvals.filter(a => a.id !== selectedApproval.id));
       setSelectedApproval(null);
       toast.success(`Approval ${approved ? 'Granted' : 'Rejected'} successfully`);
       queryClient.invalidateQueries({ queryKey: ['history'] });
+      queryClient.invalidateQueries({ queryKey: ['approvals'] });
     } catch (err) {
       toast.error('Failed to submit approval');
     }
   };
 
   return (
-    <div className="flex-1 w-full max-w-[1440px] mx-auto pb-12 pt-6">
+    <div className="p-6 md:p-10 max-w-[1600px] mx-auto w-full space-y-8 h-full flex flex-col">
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 pb-6 border-b border-[#27272a] shrink-0">
+        <div className="space-y-3">
+          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-primary">Approval Queue</h1>
+          <p className="text-sm md:text-base text-on-surface-variant max-w-2xl leading-relaxed">
+            Review and action pending tasks that require human authorization before resuming execution.
+          </p>
+        </div>
+      </div>
+
       {/* Filter Section */}
-      <section className="mb-8 space-y-6">
-        <div className="relative group">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-on-surface-variant group-focus-within:text-primary transition-colors" />
+      <section className="flex flex-col md:flex-row gap-4 items-center justify-between bg-[#0a0a0a] p-4 rounded-xl border border-[#27272a] shrink-0 shadow-sm">
+        <div className="relative w-full md:w-96">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-outline transition-colors" />
           <input 
-            className="w-full bg-surface-container-low border border-outline-variant rounded-lg py-3 pl-12 pr-4 font-body-sm text-primary placeholder:text-on-surface-variant focus:outline-none focus:border-primary focus:ring-0 transition-all" 
+            className="w-full bg-[#111111] border border-[#27272a] rounded-lg py-2.5 pl-12 pr-4 text-sm font-medium text-primary placeholder:text-on-surface-variant focus:outline-none focus:border-blue-500 transition-colors" 
             placeholder="Search execution ID, workflow, or keyword..." 
             type="text"
           />
         </div>
         
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 custom-scrollbar">
-          <button className="whitespace-nowrap px-4 py-1.5 rounded-full bg-primary text-on-primary font-label-caps hover:opacity-90 transition-all">ALL</button>
-          <button className="whitespace-nowrap px-4 py-1.5 rounded-full border border-outline-variant bg-surface-container-low text-on-surface-variant font-label-caps hover:bg-surface-container-high hover:text-primary transition-all">HIGH PRIORITY</button>
-          <button className="whitespace-nowrap px-4 py-1.5 rounded-full border border-outline-variant bg-surface-container-low text-on-surface-variant font-label-caps hover:bg-surface-container-high hover:text-primary transition-all">PENDING</button>
-          <button className="whitespace-nowrap px-4 py-1.5 rounded-full border border-outline-variant bg-surface-container-low text-on-surface-variant font-label-caps hover:bg-surface-container-high hover:text-primary transition-all">MY ASSIGNMENTS</button>
+        <div className="flex items-center gap-2 overflow-x-auto custom-scrollbar">
+          {['ALL', 'HIGH PRIORITY', 'PENDING', 'MY ASSIGNMENTS'].map(f => (
+            <button 
+              key={f}
+              onClick={() => setFilter(f)}
+              className={cn(
+                "whitespace-nowrap px-4 py-2 rounded-lg text-xs font-bold transition-all uppercase tracking-wider",
+                filter === f 
+                  ? "bg-blue-600 text-white shadow-sm" 
+                  : "bg-[#111111] border border-[#27272a] text-on-surface-variant hover:text-primary hover:bg-[#27272a]/50"
+              )}
+            >
+              {f}
+            </button>
+          ))}
         </div>
       </section>
 
       {/* Approval Cards List */}
-      <div className="space-y-4">
-        {approvals.map((approval) => (
-          <article key={approval.id} className="bg-surface-container-low border border-outline-variant p-5 rounded-lg flex flex-col lg:flex-row lg:items-center justify-between gap-6 hover:border-outline transition-colors group">
-            <div className="flex-1 space-y-3">
+      <div className="space-y-4 flex-1">
+        {approvals.map((approval: any) => (
+          <article key={approval.id} className="bg-[#0a0a0a] border border-[#27272a] p-6 rounded-xl shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-6 hover:border-[#3b82f6]/50 transition-colors group">
+            <div className="flex-1 space-y-4">
               <div className="flex flex-wrap items-center gap-3">
-                <h3 className="font-headline-md text-primary">{approval.workflowName}</h3>
-                <span className="font-label-mono text-on-surface-variant bg-surface-container px-2 py-0.5 border border-outline-variant rounded">#{approval.executionId}</span>
+                <h3 className="text-lg font-bold text-primary group-hover:text-blue-500 transition-colors">{approval.workflowName}</h3>
+                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-outline bg-[#111111] px-2.5 py-1 border border-[#27272a] rounded">
+                  #{approval.executionId}
+                </span>
                 
                 {approval.priority === 'HIGH' && (
-                  <span className="flex items-center gap-1.5 px-2 py-0.5 font-label-mono border border-red-500/30 text-red-400 bg-red-500/10 rounded">
-                    <span className="w-1.5 h-1.5 bg-red-400 rounded-full animate-pulse"></span> HIGH PRIORITY
+                  <span className="flex items-center gap-1.5 px-2 py-0.5 text-[10px] font-mono font-bold uppercase border border-red-500/30 text-red-500 bg-red-500/10 rounded">
+                    <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse shadow-[0_0_5px_rgba(239,68,68,0.8)]"></span> HIGH PRIORITY
                   </span>
                 )}
                 {approval.priority === 'MEDIUM' && (
-                  <span className="flex items-center gap-1.5 px-2 py-0.5 font-label-mono border border-blue-500/30 text-blue-400 bg-blue-500/10 rounded">
-                    <span className="w-1.5 h-1.5 bg-blue-400 rounded-full"></span> MEDIUM
+                  <span className="flex items-center gap-1.5 px-2 py-0.5 text-[10px] font-mono font-bold uppercase border border-blue-500/30 text-blue-500 bg-blue-500/10 rounded">
+                    <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span> MEDIUM
                   </span>
                 )}
                 {approval.priority === 'LOW' && (
-                  <span className="flex items-center gap-1.5 px-2 py-0.5 font-label-mono border border-outline-variant text-on-surface-variant bg-surface-container/50 rounded">
-                    <span className="w-1.5 h-1.5 bg-outline rounded-full"></span> LOW
+                  <span className="flex items-center gap-1.5 px-2 py-0.5 text-[10px] font-mono font-bold uppercase border border-gray-500/30 text-gray-400 bg-gray-500/10 rounded">
+                    <span className="w-1.5 h-1.5 bg-gray-500 rounded-full"></span> LOW
                   </span>
                 )}
               </div>
               
-              <p className="font-body-sm text-on-surface-variant max-w-2xl">{approval.reason}</p>
+              <div className="bg-[#111111] p-4 rounded-lg border border-[#27272a]">
+                <p className="text-sm font-medium text-on-surface-variant max-w-3xl leading-relaxed">{approval.reason}</p>
+              </div>
               
-              <div className="flex items-center gap-4 pt-1">
-                <span className="flex items-center gap-1 font-label-mono text-on-surface-variant">
-                  <Clock className="h-4 w-4" /> 
+              <div className="flex items-center gap-6 pt-1">
+                <span className="flex items-center gap-1.5 text-xs font-mono font-bold text-outline">
+                  <Clock className="h-3.5 w-3.5" /> 
                   {format(new Date(approval.timestamp), 'p')}
                 </span>
-                <span className="flex items-center gap-1 font-label-mono text-on-surface-variant">
-                  <User className="h-4 w-4" /> Assigned to: Me
+                <span className="flex items-center gap-1.5 text-xs font-mono font-bold text-outline">
+                  <User className="h-3.5 w-3.5" /> Assigned to: <strong className="text-primary font-medium">Me</strong>
                 </span>
               </div>
             </div>
@@ -112,17 +147,17 @@ export default function ApprovalsPage() {
             <div className="flex flex-wrap items-center gap-3 shrink-0">
               <button 
                 onClick={() => handleActionClick(approval, 'APPROVED')} 
-                className="px-6 py-2 bg-primary text-on-primary font-label-caps rounded-lg hover:opacity-90 active:scale-[0.98] transition-all"
+                className="px-6 py-2.5 bg-green-600 hover:bg-green-500 text-white text-xs font-bold uppercase tracking-wider rounded-lg shadow-sm transition-all"
               >
-                APPROVE
+                Approve
               </button>
               <button 
                 onClick={() => handleActionClick(approval, 'REJECTED')} 
-                className="px-6 py-2 border border-outline-variant bg-transparent text-primary font-label-caps rounded-lg hover:bg-surface-container-high active:scale-[0.98] transition-all"
+                className="px-6 py-2.5 border border-[#27272a] bg-[#111111] hover:bg-[#1c1b1b] text-red-500 text-xs font-bold uppercase tracking-wider rounded-lg transition-all"
               >
-                REJECT
+                Reject
               </button>
-              <button className="p-2 text-on-surface-variant hover:text-primary transition-colors">
+              <button className="p-2.5 text-outline hover:text-primary hover:bg-[#27272a] rounded-lg transition-colors">
                 <MoreVertical className="h-5 w-5" />
               </button>
             </div>
@@ -130,36 +165,44 @@ export default function ApprovalsPage() {
         ))}
 
         {approvals?.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-24 text-gray-500 bg-[#0a0a0a] rounded-xl border border-white/5 shadow-inner">
-            <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-4 border-dashed">
-               <CheckCircle className="w-8 h-8 opacity-50 text-green-500" />
-             </div>
-             <p className="font-semibold text-white mb-1">You're all caught up!</p>
-             <p className="text-sm">There are no pending approvals requiring your attention.</p>
-          </div>
+          <EmptyState 
+            icon={ShieldCheck} 
+            title="You're all caught up!" 
+            description="There are no pending approvals requiring your attention at this time." 
+          />
         )}
       </div>
 
       <Dialog open={!!selectedApproval} onOpenChange={() => setSelectedApproval(null)}>
         <DialogHeader>
-          <DialogTitle>{actionType === 'APPROVED' ? 'Approve' : 'Reject'} Step</DialogTitle>
+          <DialogTitle className="text-xl font-bold text-primary">
+            {actionType === 'APPROVED' ? 'Approve Step' : 'Reject Step'}
+          </DialogTitle>
         </DialogHeader>
-        <div className="py-4">
-          <label className="text-sm font-medium">Comments (optional)</label>
+        <div className="py-6">
+          <label className="text-sm font-bold text-primary mb-2 block">Comments (optional)</label>
           <Input 
-            className="mt-2 bg-surface-container-low border-outline-variant text-primary" 
+            className="w-full bg-[#0a0a0a] border-[#27272a] text-primary focus:border-blue-500 rounded-lg p-3" 
             placeholder="Add a reason for this decision..." 
             value={comments} 
             onChange={(e: any) => setComments(e.target.value)}
           />
         </div>
-        <DialogFooter>
-          <button className="px-4 py-2 text-sm text-on-surface-variant hover:text-primary" onClick={() => setSelectedApproval(null)}>Cancel</button>
+        <DialogFooter className="gap-3">
           <button 
-            className={`px-4 py-2 rounded text-sm font-medium ${actionType === 'APPROVED' ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-red-600 text-white hover:bg-red-700'}`}
+            className="px-5 py-2.5 text-sm font-bold text-on-surface-variant hover:text-primary transition-colors" 
+            onClick={() => setSelectedApproval(null)}
+          >
+            Cancel
+          </button>
+          <button 
+            className={cn(
+              "px-5 py-2.5 rounded-lg text-sm font-bold shadow-sm transition-all text-white",
+              actionType === 'APPROVED' ? 'bg-green-600 hover:bg-green-500' : 'bg-red-600 hover:bg-red-500'
+            )}
             onClick={submitAction}
           >
-            Confirm {actionType}
+            Confirm {actionType === 'APPROVED' ? 'Approval' : 'Rejection'}
           </button>
         </DialogFooter>
       </Dialog>

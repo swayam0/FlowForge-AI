@@ -12,6 +12,7 @@ const StepExecutionSchema = new Schema<IStepExecution>({
   input: { type: Schema.Types.Mixed },
   output: { type: Schema.Types.Mixed },
   reason: { type: String },
+
   startedAt: { type: Date, default: Date.now },
   completedAt: { type: Date },
 });

@@ -25,7 +25,7 @@ export const api = {
   updateWorkflow: (id: string, data: any) => fetcher(`/workflows/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteWorkflow: (id: string) => fetcher(`/workflows/${id}`, { method: 'DELETE' }),
   
-  executeWorkflow: (workflowVersionId: string, input: any = {}) => fetcher(`/runs`, { method: 'POST', body: JSON.stringify({ workflowVersionId, input }) }),
+  executeWorkflow: (id: string, input: any = {}) => fetcher(`/workflows/${id}/execute`, { method: 'POST', body: JSON.stringify({ input }) }),
   getExecution: (id: string) => fetcher(`/runs/${id}`),
   getExecutionLogs: (id: string) => fetcher(`/runs/${id}/logs`),
   resumeExecution: (id: string) => fetcher(`/runs/${id}/resume`, { method: 'POST' }),
@@ -35,6 +35,7 @@ export const api = {
   getHistory: () => fetcher('/history'),
   rerunExecution: (id: string, input?: any) => fetcher(`/history/${id}/rerun`, { method: 'POST', body: JSON.stringify({ input }) }),
   
+  getApprovals: () => fetcher('/approvals'),
   submitApproval: (id: string, data: any) => fetcher(`/approvals/${id}`, { method: 'POST', body: JSON.stringify(data) }),
   
   getSettings: () => fetcher('/settings'),

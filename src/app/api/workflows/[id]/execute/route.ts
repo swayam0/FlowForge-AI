@@ -1,4 +1,5 @@
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60; // Allow up to 60s for long AI executions
 import { NextResponse } from 'next/server';
 import { successResponse, errorResponse } from '../../../responseHelper';
 import connectToDatabase from '../../../../../utils/db';
@@ -6,6 +7,8 @@ import { WorkflowRepository } from '../../../../../repositories/WorkflowReposito
 import { WorkflowRunRepository } from '../../../../../repositories/WorkflowRunRepository';
 import { LoggingService } from '../../../../../server/services/LoggingService';
 import { WorkflowEngine } from '../../../../../server/engine/WorkflowEngine';
+
+import { WorkflowVersionModel } from '../../../../../models/WorkflowVersion';
 
 const workflowRepo = new WorkflowRepository();
 const runRepo = new WorkflowRunRepository();
@@ -20,7 +23,14 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
     const body = await request.json();
     const input = body.input || {};
     
-    const executionId = await engine.startRun(params.id, input);
+    // Find latest version, or fallback to workflow ID for unversioned seeded workflows
+    let targetVersionId = params.id;
+    const version = await WorkflowVersionModel.findOne({ workflowId: params.id }).sort({ versionNumber: -1 }).exec();
+    if (version) {
+      targetVersionId = version._id.toString();
+    }
+
+    const executionId = await engine.startRun(targetVersionId, input);
     
     return successResponse({ executionId }, 'Execution started', 201);
   } catch (error) {

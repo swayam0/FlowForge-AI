@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { successResponse, errorResponse } from '../responseHelper';
 import connectToDatabase from '../../../utils/db';
 import { WorkflowRunModel } from '../../../models/WorkflowRun';
-
+import mongoose from 'mongoose';
 export async function GET(request: Request) {
   try {
     await connectToDatabase();
@@ -19,14 +19,29 @@ export async function GET(request: Request) {
       .lean()
       .exec();
 
+    // Fetch all versions and workflows to map names
+    const versions = await mongoose.models.WorkflowVersion.find().lean().exec();
+    const workflows = await mongoose.models.Workflow.find().lean().exec();
+    
     // Map history to the required format
     const history = runs.map(run => {
+      // Find the version or fallback to workflow
+      const versionDoc = versions.find((v: any) => v._id.toString() === run.workflowVersionId);
+      const workflowDoc = workflows.find((w: any) => w._id.toString() === run.workflowVersionId || (versionDoc && w._id.toString() === versionDoc.workflowId));
+      
+      const workflowName = workflowDoc ? workflowDoc.name : 'Unknown Workflow';
+      const versionNum = versionDoc ? versionDoc.versionNumber : (workflowDoc ? workflowDoc.version : 1);
+
       return {
         id: run._id,
-        workflowId: run.workflowVersionId,
+        workflowId: workflowName,
         workflowVersionId: run.workflowVersionId,
+        version: versionNum,
         status: run.status,
-        startedAt: run.createdAt,
+        startedAt: run.startedAt || run.createdAt,
+        completedAt: run.completedAt,
+        durationMs: run.durationMs,
+        executionPath: run.executionPath || [],
       };
     });
 

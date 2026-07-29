@@ -4,11 +4,85 @@ FlowForge AI is a controlled agentic workflow automation platform that allows us
 
 ## Architecture
 
+```text
+                 ┌─────────────────────────┐
+                 │      React Frontend     │
+                 │  Next.js + React Flow   │
+                 └────────────┬────────────┘
+                              │
+                    REST API Calls
+                              │
+        ┌─────────────────────▼─────────────────────┐
+        │         Next.js API Route Layer           │
+        └───────────────┬───────────────────────────┘
+                        │
+            Validation (Zod)
+                        │
+         Repository / Service Layer
+                        │
+        ┌───────────────▼────────────────┐
+        │        Workflow Engine         │
+        │  Deterministic Orchestrator    │
+        └───────┬───────────┬────────────┘
+                │           │
+        Strategy Pattern    │
+      (Step Executors)      │
+                │           │
+   ┌────────────┼──────────────┬────────────┐
+   │            │              │            │
+AI Extract   AI Classify   Condition    Human Approval
+   │            │              │            │
+ Gemini API     │              │            │
+                │              │            │
+                └──────────────┼────────────┘
+                               │
+                     Mock External Action
+                               │
+                        Execution Logs
+                               │
+                           MongoDB Atlas 
+```
+
+### Request Lifecycle
+
+```text
+User
+↓
+React Flow UI
+↓
+Next.js API
+↓
+Workflow Service
+↓
+Workflow Engine
+↓
+Executor Registry
+↓
+Specific Executor
+↓
+Gemini (if AI step)
+↓
+MongoDB
+↓
+Execution Result
+↓
+Frontend Updates
+```
 The platform is built as a modern full-stack web application:
 - **Frontend**: Next.js 16 (App Router), React, Tailwind CSS, React Flow (for workflow visualization).
 - **Backend**: Next.js API Routes.
 - **Database**: MongoDB (Mongoose ORM) for persistence.
 - **AI/LLM Engine**: Google Gemini API integration for AI steps.
+
+  ```text
+  Workflow Engine
+        ↓
+    AI Service
+        ↓
+  Gemini Provider
+        ↓
+   Gemini API
+  ```
 
 ### Key Components:
 - **WorkflowEngine**: The core state machine that orchestrates step execution, handles idempotency, and state passing.
@@ -22,6 +96,52 @@ The platform is built as a modern full-stack web application:
 - **Idempotency**: `IdempotencyRecordModel` ensures that duplicate write actions are prevented on retries.
 - **Live Monitor**: A real-time `ExecutionMonitor` UI that visualizes the current execution path, step states, progress, and logs.
 - **History & Recovery**: Users can inspect previous runs, view logs, and rerun earlier versions of a workflow.
+
+## Demo Workflow (Support Ticket Triage)
+
+The live database is seeded with a realistic Support Ticket Triage workflow that showcases the platform's ability to blend deterministic rules with AI classification and human-in-the-loop approvals:
+
+```text
+User clicks Execute
+        │
+        ▼
+Workflow Loaded
+        │
+        ▼
+Input Step
+        │
+        ▼
+Document Retrieval
+        │
+        ▼
+AI Extraction
+        │
+        ▼
+AI Classification
+        │
+        ▼
+Condition Step
+      /      \
+   True      False
+    │          │
+    ▼          ▼
+Human       Auto Continue
+Approval
+    │
+Approve?
+ │       │
+Yes      No
+ │        │
+ ▼        ▼
+Mock    Stop
+Action
+ │
+ ▼
+Generate Report
+ │
+ ▼
+Completed
+```
 
 ## Intentionally Excluded Scope
 - **Real External Actions**: Action nodes currently perform mocked API calls/DB writes to prevent accidental side effects during evaluation.

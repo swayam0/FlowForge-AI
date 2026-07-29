@@ -13,6 +13,7 @@ import '@xyflow/react/dist/style.css';
 import { BaseNode } from '../workflow/CustomNodes';
 import { cn } from '../../lib/utils';
 import { format } from 'date-fns';
+import { StatusBadge } from '../ui/StatusBadge';
 
 const nodeTypes = {
   customNode: BaseNode,
@@ -160,16 +161,7 @@ function ExecutionMonitorInner({ workflowId, executionId }: { workflowId: string
             </span>
           </div>
           
-          <div className={cn(
-            "flex items-center gap-2 px-3 py-1 rounded-full border border-dashed",
-            isRunning ? "bg-blue-500/10 border-blue-500/30 text-blue-400" :
-            isSuccess ? "bg-green-500/10 border-green-500/30 text-green-400" :
-            isPaused ? "bg-yellow-500/10 border-yellow-500/30 text-yellow-400" :
-            "bg-red-500/10 border-red-500/30 text-red-400"
-          )}>
-            {isRunning && <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />}
-            <span className="text-[11px] font-label-mono uppercase font-bold tracking-wider">{activeExecution.status}</span>
-          </div>
+          <StatusBadge status={activeExecution.status} className="px-3 py-1.5 text-xs border-dashed bg-transparent" />
 
           <div className="flex items-center gap-2 text-gray-400 border-l border-outline-variant pl-6">
             <Clock className="h-4 w-4" />

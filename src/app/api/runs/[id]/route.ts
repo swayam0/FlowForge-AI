@@ -11,9 +11,7 @@ export async function GET(request: Request, props: { params: Promise<{ id: strin
   try {
     await connectToDatabase();
     
-    console.log(`[DEBUG api/runs/[id]] Requested ID: ${params.id}`);
     const run = await runRepo.getById(params.id);
-    console.log(`[DEBUG api/runs/[id]] Retrieved run:`, run ? run._id : 'null');
 
     if (!run) return errorResponse('Execution not found', null, 404);
 

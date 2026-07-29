@@ -11,7 +11,7 @@ export function Sidebar() {
     { name: 'Dashboard', href: '/', icon: LayoutDashboard },
     { name: 'Workflows', href: '/workflows', icon: GitBranch },
     { name: 'Executions', href: '/executions', icon: PlayCircle },
-    { name: 'Approval Queue', href: '/approvals', icon: CheckSquare },
+    { name: 'Approvals', href: '/approvals', icon: CheckSquare },
     { name: 'History', href: '/history', icon: History },
     { name: 'Settings', href: '/settings', icon: Settings },
   ];

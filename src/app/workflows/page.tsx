@@ -2,15 +2,43 @@
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
-import { Badge } from '../../components/ui/Badge';
+import { StatusBadge } from '../../components/ui/StatusBadge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/Table';
-import { Button } from '../../components/ui/Button';
 import { format } from 'date-fns';
-import { Edit2, Play, Plus, Trash2, Activity } from 'lucide-react';
+import { Edit2, Play, Plus, Trash2, Activity, Network } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { cn } from '../../lib/utils';
+
+function EmptyState({ icon: Icon, title, description, action }: any) {
+  return (
+    <div className="flex flex-col items-center justify-center py-24 text-center w-full bg-[#0a0a0a] rounded-xl border border-[#27272a] shadow-sm">
+      <div className="h-20 w-20 rounded-3xl bg-[#111111] flex items-center justify-center mb-6 border border-[#27272a] shadow-inner">
+        <Icon className="h-10 w-10 text-outline opacity-80" />
+      </div>
+      <h3 className="text-xl font-bold text-primary mb-2 tracking-tight">{title}</h3>
+      <p className="text-sm text-on-surface-variant mb-6 max-w-sm leading-relaxed">{description}</p>
+      {action}
+    </div>
+  );
+}
+
+function TableSkeleton({ columns, rows = 5 }: { columns: number, rows?: number }) {
+  return (
+    <>
+      {Array.from({ length: rows }).map((_, i) => (
+        <TableRow key={i} className="border-b border-[#27272a] hover:bg-transparent border-none">
+          {Array.from({ length: columns }).map((_, j) => (
+            <TableCell key={j} className="py-5">
+              <div className="h-4 bg-[#27272a]/50 rounded animate-pulse w-3/4"></div>
+            </TableCell>
+          ))}
+        </TableRow>
+      ))}
+    </>
+  );
+}
 
 export default function WorkflowsPage() {
   const router = useRouter();
@@ -43,62 +71,95 @@ export default function WorkflowsPage() {
   };
 
   return (
-    <div className="flex flex-col h-full p-8">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Workflows</h1>
-          <p className="text-muted-foreground mt-1">Manage and execute your AI automation flows.</p>
+    <div className="p-6 md:p-10 max-w-[1600px] mx-auto w-full space-y-8 h-full flex flex-col">
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 pb-6 border-b border-[#27272a] shrink-0">
+        <div className="space-y-3">
+          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-primary">Workflows</h1>
+          <p className="text-sm md:text-base text-on-surface-variant max-w-2xl leading-relaxed">
+            Manage your AI automation library. Create new flows, edit existing ones, or trigger manual executions.
+          </p>
         </div>
         <Link href="/workflows/create">
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
+          <button className="bg-primary text-surface px-5 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-2 hover:opacity-90 shadow-[0_0_15px_rgba(59,130,246,0.3)] transition-all whitespace-nowrap">
+            <Plus className="h-4 w-4" />
             Create Workflow
-          </Button>
+          </button>
         </Link>
       </div>
 
-      <Card>
-        <CardContent className="p-0">
-          {isLoading ? (
-            <div className="p-8 max-w-[1440px] mx-auto w-full space-y-6 animate-pulse">
-              <div className="flex justify-between items-center mb-8">
-                <div className="h-8 bg-white/5 rounded w-1/4"></div>
-                <div className="h-10 bg-white/5 rounded w-32"></div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {[1,2,3,4].map(i => <div key={i} className="h-48 bg-white/5 rounded-xl border border-white/5"></div>)}
-              </div>
-            </div>
-          ) : (
+      <div className="flex-1 bg-[#0a0a0a] rounded-xl border border-[#27272a] shadow-sm flex flex-col overflow-hidden">
+        {isLoading ? (
+          <div className="overflow-auto flex-1 custom-scrollbar">
             <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Version</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+              <TableHeader className="bg-[#111111] sticky top-0 z-10 border-b border-[#27272a]">
+                <TableRow className="border-none hover:bg-transparent">
+                  <TableHead className="text-xs font-bold text-outline uppercase tracking-wider">Name</TableHead>
+                  <TableHead className="text-xs font-bold text-outline uppercase tracking-wider">Version</TableHead>
+                  <TableHead className="text-xs font-bold text-outline uppercase tracking-wider">Status</TableHead>
+                  <TableHead className="text-xs font-bold text-outline uppercase tracking-wider">Created</TableHead>
+                  <TableHead className="text-right text-xs font-bold text-outline uppercase tracking-wider">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableSkeleton columns={5} rows={6} />
+              </TableBody>
+            </Table>
+          </div>
+        ) : (!workflows || workflows.length === 0) ? (
+          <div className="flex-1 p-0 flex items-center justify-center">
+            <EmptyState 
+              icon={Network} 
+              title="No workflows found" 
+              description="Create your first automation workflow to get started with the FlowForge AI engine."
+              action={
+                <Link href="/workflows/create">
+                  <button className="bg-primary text-surface px-5 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-2 hover:opacity-90 transition-all">
+                    <Plus className="h-4 w-4" />
+                    Create Workflow
+                  </button>
+                </Link>
+              }
+            />
+          </div>
+        ) : (
+          <div className="overflow-auto flex-1 custom-scrollbar">
+            <Table>
+              <TableHeader className="bg-[#111111] sticky top-0 z-10 border-b border-[#27272a]">
+                <TableRow className="border-none hover:bg-transparent">
+                  <TableHead className="text-xs font-bold text-outline uppercase tracking-wider w-[30%]">Name</TableHead>
+                  <TableHead className="text-xs font-bold text-outline uppercase tracking-wider">Version</TableHead>
+                  <TableHead className="text-xs font-bold text-outline uppercase tracking-wider">Status</TableHead>
+                  <TableHead className="text-xs font-bold text-outline uppercase tracking-wider">Created</TableHead>
+                  <TableHead className="text-right text-xs font-bold text-outline uppercase tracking-wider">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {workflows?.map((wf: any) => (
-                  <TableRow key={wf.id}>
-                    <TableCell className="font-medium">{wf.name}</TableCell>
-                    <TableCell>v{wf.version}</TableCell>
-                    <TableCell>
-                      <Badge variant={wf.status === 'ACTIVE' ? 'default' : 'secondary'}>
-                        {wf.status}
-                      </Badge>
+                  <TableRow key={wf.id} className="border-b border-[#27272a] hover:bg-[#1c1b1b] transition-colors group">
+                    <TableCell className="font-medium text-primary">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-md bg-blue-500/10 flex items-center justify-center shrink-0 border border-blue-500/20 group-hover:bg-blue-500/20 transition-colors">
+                          <Network className="h-4 w-4 text-blue-500" />
+                        </div>
+                        <span className="text-sm font-bold group-hover:text-blue-500 transition-colors">{wf.name}</span>
+                      </div>
                     </TableCell>
-                    <TableCell>{format(new Date(wf.createdAt), 'PP')}</TableCell>
+                    <TableCell className="text-on-surface-variant font-mono text-xs font-medium">v{wf.version}</TableCell>
+                    <TableCell>
+                      <StatusBadge status={wf.status} />
+                    </TableCell>
+                    <TableCell className="text-on-surface-variant text-sm font-medium">
+                      {format(new Date(wf.createdAt), 'MMM d, yyyy')}
+                    </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button variant="secondary" size="sm" onClick={() => handleRun(wf.id)}>
-                          <Play className="w-4 h-4 mr-1" /> Run
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
+                      <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button 
+                          onClick={() => handleRun(wf.id)}
+                          className="px-3 py-1.5 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider bg-[#111111] hover:bg-green-500 hover:text-white border border-[#27272a] hover:border-green-500 text-green-500 rounded-md transition-all"
+                        >
+                          <Play className="w-3.5 h-3.5" /> Run
+                        </button>
+                        <button 
                           onClick={() => {
                             if (!wf.id || wf.id === 'undefined') {
                               toast.error("Workflow ID missing");
@@ -106,38 +167,26 @@ export default function WorkflowsPage() {
                             }
                             router.push(`/workflows/${wf.id}`);
                           }}
+                          className="px-3 py-1.5 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider bg-[#111111] hover:bg-blue-500 hover:text-white border border-[#27272a] hover:border-blue-500 text-blue-500 rounded-md transition-all"
                         >
-                          <Edit2 className="w-4 h-4 mr-1" /> Edit
-                        </Button>
-                        <Button variant="outline" size="sm" className="text-destructive border-destructive hover:bg-destructive/10" onClick={() => handleDelete(wf.id)}>
+                          <Edit2 className="w-3.5 h-3.5" /> Edit
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(wf.id)}
+                          className="p-1.5 flex items-center justify-center bg-[#111111] hover:bg-red-500 hover:text-white border border-[#27272a] hover:border-red-500 text-red-500 rounded-md transition-all"
+                          title="Delete Workflow"
+                        >
                           <Trash2 className="w-4 h-4" />
-                        </Button>
+                        </button>
                       </div>
                     </TableCell>
                   </TableRow>
                 ))}
-                {(!workflows || workflows.length === 0) && (
-                  <TableRow>
-                    <TableCell colSpan={5} className="h-64 text-center">
-                      <div className="flex flex-col items-center justify-center text-gray-500">
-                        <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-4 border-dashed">
-                          <Activity className="w-8 h-8 opacity-50" />
-                        </div>
-                        <p className="font-semibold text-white mb-1">No workflows found</p>
-                        <p className="text-sm mb-4">Create your first automation workflow to get started.</p>
-                        <Button onClick={() => router.push('/workflows/create')}>
-                          <Plus className="w-4 h-4 mr-2" />
-                          Create Workflow
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                )}
               </TableBody>
             </Table>
-          )}
-        </CardContent>
-      </Card>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

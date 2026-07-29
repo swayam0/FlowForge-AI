@@ -10,8 +10,6 @@ import { ArrowLeft } from 'lucide-react';
 export default function ExecutionDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const unwrappedParams = use(params);
   const executionId = unwrappedParams.id;
-  
-  console.log(`[DEBUG Frontend executions/[id]/page.tsx] Rendering for executionId: ${executionId}`);
 
   const { data: execution, isLoading } = useQuery({
     queryKey: ['execution', executionId],

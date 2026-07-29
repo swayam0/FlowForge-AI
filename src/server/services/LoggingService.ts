@@ -10,16 +10,9 @@ export class LoggingService {
     metadata?: Record<string, any>
   ): Promise<void> {
     try {
-      const log = new StepExecutionModel({
-        runId,
-        stepId,
-        eventType,
-        reason: message,
-        status: 'RUNNING', // Fallback status if just logging an event via LoggingService
-        metadata,
-      });
-      await log.save();
-      console.log(`[${eventType}] ${message}`); // Also log to console for development
+      // We no longer save logs to StepExecutionModel to prevent corrupting the event sourcing reducer.
+      // Actual node executions are safely recorded by WorkflowEngine.executeNode.
+      console.log(`[${eventType}] ${message}`); 
     } catch (error) {
       console.error('Failed to log execution:', error);
     }

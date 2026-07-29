@@ -39,7 +39,6 @@ export async function POST(request: Request) {
     const workflow = await workflowRepo.create(body, createdBy);
     
     const workflowJson = workflow.toJSON();
-    console.log(`[API POST /workflows] Success. Created workflow ID:`, workflowJson.id);
     
     return successResponse(workflowJson, 'Workflow created successfully', 201);
   } catch (error: any) {

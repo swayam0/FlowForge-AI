@@ -11,6 +11,7 @@ import { WorkflowRunModel } from '../../models/WorkflowRun';
 import { StepExecutionModel } from '../../models/StepExecution';
 import { IdempotencyRecordModel } from '../../models/IdempotencyRecord';
 import { WorkflowVersionModel } from '../../models/WorkflowVersion';
+import { WorkflowModel } from '../../models/Workflow';
 
 export class WorkflowEngine {
   private executorFactory: ExecutorFactory;
@@ -39,7 +40,11 @@ export class WorkflowEngine {
 
   private async getWorkflowVersionSnapshot(workflowVersionId: string) {
     const versionDoc = await WorkflowVersionModel.findById(workflowVersionId).lean().exec();
-    if (!versionDoc) return null;
+    if (!versionDoc) {
+      // Fallback for demo workflows seeded without versions
+      const workflowDoc = await WorkflowModel.findById(workflowVersionId).lean().exec();
+      return workflowDoc ? workflowDoc : null;
+    }
     return versionDoc.snapshot as any;
   }
 
@@ -107,7 +112,16 @@ export class WorkflowEngine {
     }
 
     // Finished
-    await this.runRepo.updateStatus(runId, { status: ExecutionStatus.COMPLETED });
+    const completedAt = new Date();
+    const durationMs = run.startedAt ? completedAt.getTime() - new Date(run.startedAt).getTime() : 0;
+    
+    await WorkflowRunModel.findByIdAndUpdate(runId, {
+      status: ExecutionStatus.COMPLETED,
+      completedAt,
+      durationMs,
+      executionPath: Object.keys(previousOutputs)
+    });
+    
     await this.loggingService.log(runId, EventType.EXECUTION_COMPLETED, 'Run completed');
   }
 

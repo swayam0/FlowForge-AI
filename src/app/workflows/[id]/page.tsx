@@ -8,6 +8,7 @@ import { ExecutionMonitor } from '../../../components/execution/ExecutionMonitor
 import { VersionComparisonTab } from '../../../components/workflow/VersionComparisonTab';
 import { Button } from '../../../components/ui/Button';
 import { toast } from 'sonner';
+import { Dialog, DialogHeader, DialogTitle, DialogFooter } from '../../../components/ui/Dialog';
 
 export default function WorkflowDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const unwrappedParams = use(params);
@@ -19,9 +20,21 @@ export default function WorkflowDetailsPage({ params }: { params: Promise<{ id: 
     queryFn: () => api.getWorkflow(id),
   });
 
+  const [isRunModalOpen, setIsRunModalOpen] = useState(false);
+  const [runInputJson, setRunInputJson] = useState('{\n  "ticketPriority": "CRITICAL",\n  "subject": "System down"\n}');
+
   const handleExecute = async () => {
     try {
-      const result = await api.executeWorkflow(id);
+      let parsedInput = {};
+      try {
+        parsedInput = runInputJson.trim() ? JSON.parse(runInputJson) : {};
+      } catch (e) {
+        toast.error('Invalid JSON input format');
+        return;
+      }
+      
+      const result = await api.executeWorkflow(id, parsedInput);
+      setIsRunModalOpen(false);
       setActiveTab('monitor');
       toast.success(`Execution started: ${result.executionId}`);
     } catch (err) {
@@ -59,7 +72,7 @@ export default function WorkflowDetailsPage({ params }: { params: Promise<{ id: 
             Monitor
           </Button>
           <div className="w-px h-6 bg-border mx-2" />
-          <Button onClick={handleExecute} className="bg-emerald-600 hover:bg-emerald-700">
+          <Button onClick={() => setIsRunModalOpen(true)} className="bg-emerald-600 hover:bg-emerald-700">
             Run Workflow
           </Button>
         </div>
@@ -72,6 +85,26 @@ export default function WorkflowDetailsPage({ params }: { params: Promise<{ id: 
       ) : (
         <ExecutionMonitor workflowId={workflow.id} />
       )}
+
+      {/* Run Modal */}
+      <Dialog open={isRunModalOpen} onOpenChange={setIsRunModalOpen}>
+        <DialogHeader>
+          <DialogTitle>Run Workflow</DialogTitle>
+        </DialogHeader>
+        <div className="py-4">
+          <label className="text-sm font-medium mb-2 block">Initial Input (JSON)</label>
+          <textarea
+            className="w-full h-32 bg-[#0a0a0a] border border-[#27272a] rounded-lg p-3 text-sm font-mono focus:border-blue-500 focus:outline-none"
+            value={runInputJson}
+            onChange={(e) => setRunInputJson(e.target.value)}
+            placeholder="{}"
+          />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setIsRunModalOpen(false)}>Cancel</Button>
+          <Button onClick={handleExecute} className="bg-emerald-600 hover:bg-emerald-700">Start Execution</Button>
+        </DialogFooter>
+      </Dialog>
     </div>
   );
 }

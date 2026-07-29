@@ -108,7 +108,7 @@ export function WorkflowBuilderInner({ initialWorkflow }: { initialWorkflow?: an
           id: sn.id,
           type: 'customNode',
           position: existing ? existing.position : { x: 250, y: 150 },
-          data: { label: (sn as any).name, type: sn.type, configuration: sn.configuration },
+          data: { label: (sn as any).label || (sn as any).name, type: sn.type, configuration: sn.configuration },
         };
       }));
     }
@@ -168,7 +168,7 @@ export function WorkflowBuilderInner({ initialWorkflow }: { initialWorkflow?: an
         const storeNode = storeNodes.find(sn => sn.id === n.id);
         return {
           id: n.id,
-          label: n.data.label,
+          label: n.data.label || n.data.name || (storeNode ? (storeNode as any).label || (storeNode as any).name : undefined) || 'Unknown Node',
           type: n.data.type,
           configuration: (storeNode ? storeNode.configuration : n.data.configuration) || {},
           position: n.position
@@ -286,7 +286,7 @@ export function WorkflowBuilderInner({ initialWorkflow }: { initialWorkflow?: an
       setNodes((nds) => nds.concat(newNode));
       setStoreNodes((prevNodes: any) => [...prevNodes, {
         id: newNode.id,
-        name: newNode.data.label,
+        label: newNode.data.label,
         type: newNode.data.type,
         configuration: newNode.data.configuration
       }]);

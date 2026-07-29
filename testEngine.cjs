@@ -1,7 +1,8 @@
 const mongoose = require('mongoose');
+require('dotenv').config();
 
 async function testEngine() {
-  await mongoose.connect('mongodb+srv://swayam:***REMOVED***@cluster0.ikvycii.mongodb.net/flowforge-ai?appName=Cluster0');
+  await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/flowforge-ai');
   
   const Schema = mongoose.Schema;
   const TestModel = mongoose.model('TestEmpty', new Schema({ input: { type: Schema.Types.Mixed } }));

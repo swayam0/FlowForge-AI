@@ -9,6 +9,7 @@ async function clearDatabase() {
     console.log("Connected.");
 
     const db = mongoose.connection.db;
+    if (!db) { throw new Error('Database connection not established'); }
     
     // Get all collections
     const collections = await db.collections();

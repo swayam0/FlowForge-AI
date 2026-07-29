@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 
-const MONGODB_URI = 'mongodb+srv://swayamawari1_db_user:***REMOVED***@cluster0.ikvycii.mongodb.net/flowforge-ai';
+const MONGODB_URI = process.env.MONGODB_URI || '';
 
 async function clearDatabase() {
   try {
@@ -8,8 +8,7 @@ async function clearDatabase() {
     await mongoose.connect(MONGODB_URI);
     console.log("Connected.");
 
-    const db = mongoose.connection.db;
-    if (!db) { throw new Error('Database connection not established'); }
+    const db = mongoose.connection.db!;
     
     // Get all collections
     const collections = await db.collections();

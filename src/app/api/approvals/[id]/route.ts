@@ -42,7 +42,7 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
     );
 
     // Auto-resume the engine now that approval is provided
-    await engine.resumeExecution(approval.executionId);
+    await engine.resumeRun(approval.executionId);
 
     return successResponse(approval.toJSON(), `Approval ${parsedData.status} successfully`);
   } catch (error) {

@@ -113,7 +113,7 @@ export class WorkflowEngine {
 
     // Finished
     const completedAt = new Date();
-    const durationMs = run.startedAt ? completedAt.getTime() - new Date(run.startedAt).getTime() : 0;
+    const durationMs = run.createdAt ? completedAt.getTime() - new Date(run.createdAt).getTime() : 0;
     
     await WorkflowRunModel.findByIdAndUpdate(runId, {
       status: ExecutionStatus.COMPLETED,

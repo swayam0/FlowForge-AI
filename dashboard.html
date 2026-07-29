@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>FlowForge AI - Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface": "#141313",
+                        "on-primary-fixed": "#1a1c1c",
+                        "inverse-surface": "#e5e2e1",
+                        "surface-dim": "#141313",
+                        "secondary": "#adc6ff",
+                        "outline-variant": "#444748",
+                        "on-secondary-container": "#e6ecff",
+                        "on-tertiary-container": "#636565",
+                        "inverse-on-surface": "#313030",
+                        "tertiary": "#ffffff",
+                        "surface-bright": "#3a3939",
+                        "primary": "#ffffff",
+                        "surface-container-low": "#1c1b1b",
+                        "secondary-fixed": "#d8e2ff",
+                        "error-container": "#93000a",
+                        "surface-container-lowest": "#0e0e0e",
+                        "on-secondary-fixed-variant": "#004395",
+                        "on-tertiary": "#2f3131",
+                        "background": "#141313",
+                        "on-surface": "#e5e2e1",
+                        "surface-variant": "#353434",
+                        "on-error-container": "#ffdad6",
+                        "primary-fixed-dim": "#c6c6c7",
+                        "surface-container-highest": "#353434",
+                        "on-primary": "#2f3131",
+                        "primary-container": "#e2e2e2",
+                        "on-error": "#690005",
+                        "on-primary-fixed-variant": "#454747",
+                        "on-tertiary-fixed": "#1a1c1c",
+                        "secondary-fixed-dim": "#adc6ff",
+                        "tertiary-fixed": "#e2e2e2",
+                        "on-secondary-fixed": "#001a42",
+                        "on-tertiary-fixed-variant": "#454747",
+                        "primary-fixed": "#e2e2e2",
+                        "surface-container": "#201f1f",
+                        "secondary-container": "#0566d9",
+                        "on-primary-container": "#636565",
+                        "on-background": "#e5e2e1",
+                        "surface-tint": "#c6c6c7",
+                        "on-surface-variant": "#c4c7c8",
+                        "tertiary-fixed-dim": "#c6c6c7",
+                        "surface-container-high": "#2a2a2a",
+                        "on-secondary": "#002e6a",
+                        "outline": "#8e9192",
+                        "error": "#ffb4ab",
+                        "inverse-primary": "#5d5f5f",
+                        "tertiary-container": "#e2e2e2"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "margin-mobile": "16px",
+                        "container-max": "1440px",
+                        "sidebar-width": "240px",
+                        "margin-desktop": "32px",
+                        "unit": "4px",
+                        "gutter": "24px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "label-caps": ["Inter"],
+                        "headline-lg-mobile": ["Inter"],
+                        "display": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "label-mono": ["JetBrains Mono"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["20px", {"lineHeight": "1.4", "letterSpacing": "-0.02em", "fontWeight": "500"}],
+                        "headline-lg": ["32px", {"lineHeight": "1.2", "letterSpacing": "-0.03em", "fontWeight": "600"}],
+                        "label-caps": ["11px", {"lineHeight": "1.2", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                        "headline-lg-mobile": ["24px", {"lineHeight": "1.2", "fontWeight": "600"}],
+                        "display": ["48px", {"lineHeight": "1.1", "letterSpacing": "-0.04em", "fontWeight": "600"}],
+                        "body-lg": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                        "body-sm": ["14px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                        "label-mono": ["12px", {"lineHeight": "1.2", "letterSpacing": "0.02em", "fontWeight": "500"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            background-color: #000000;
+            color: #e5e2e1;
+            font-family: 'Inter', sans-serif;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        /* Custom scrollbar for data tables */
+        .custom-scrollbar::-webkit-scrollbar {
+            height: 4px;
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #0a0a0a;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #27272a;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #3b82f6;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface">
+<!-- NavigationDrawer (The Anchor) -->
+<aside class="fixed left-0 top-0 h-screen flex flex-col w-sidebar-width border-r border-outline-variant bg-surface dark:bg-surface hidden md:flex z-50" id="sidebar">
+<div class="p-8">
+<span class="font-headline-md text-headline-md font-bold text-primary dark:text-primary">FlowForge AI</span>
+</div>
+<nav class="flex-1 px-4 space-y-1">
+<!-- Active State Dashboard -->
+<a class="flex items-center px-4 py-3 text-primary dark:text-primary font-bold border-l-2 border-primary bg-surface-container-high transition-colors duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined mr-3" data-icon="dashboard">dashboard</span>
+<span class="font-body-sm text-body-sm">Dashboard</span>
+</a>
+<a class="flex items-center px-4 py-3 text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-container-low transition-colors duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined mr-3" data-icon="account_tree">account_tree</span>
+<span class="font-body-sm text-body-sm">Workflows</span>
+</a>
+<a class="flex items-center px-4 py-3 text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-container-low transition-colors duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined mr-3" data-icon="play_circle">play_circle</span>
+<span class="font-body-sm text-body-sm">Executions</span>
+</a>
+<a class="flex items-center px-4 py-3 text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-container-low transition-colors duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined mr-3" data-icon="rule">rule</span>
+<span class="font-body-sm text-body-sm">Approval Queue</span>
+</a>
+<a class="flex items-center px-4 py-3 text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-container-low transition-colors duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined mr-3" data-icon="history">history</span>
+<span class="font-body-sm text-body-sm">History</span>
+</a>
+<a class="flex items-center px-4 py-3 text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-container-low transition-colors duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined mr-3" data-icon="settings">settings</span>
+<span class="font-body-sm text-body-sm">Settings</span>
+</a>
+</nav>
+<div class="p-6 border-t border-outline-variant">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-container-highest flex items-center justify-center">
+<span class="material-symbols-outlined text-on-surface-variant" style="font-size: 18px;">person</span>
+</div>
+<div class="flex flex-col">
+<span class="font-body-sm text-body-sm font-semibold">Dev_Engineer</span>
+<span class="text-[10px] text-outline">Pro Plan</span>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Content Shell -->
+<main class="md:ml-sidebar-width min-h-screen flex flex-col relative bg-black">
+<!-- TopAppBar -->
+<header class="flex items-center justify-between px-margin-mobile md:px-margin-desktop h-16 w-full border-b border-outline-variant bg-surface dark:bg-surface sticky top-0 z-40">
+<div class="flex items-center gap-4">
+<button class="md:hidden text-primary">
+<span class="material-symbols-outlined" data-icon="menu">menu</span>
+</button>
+<h1 class="font-headline-md text-headline-md text-primary">Dashboard</h1>
+</div>
+<div class="flex items-center gap-6">
+<div class="hidden md:flex bg-surface-container border border-outline-variant px-3 py-1 items-center gap-2 rounded">
+<span class="material-symbols-outlined text-outline" style="font-size: 16px;">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-body-sm w-48 placeholder:text-outline-variant" placeholder="Search resources..." type="text"/>
+</div>
+<button class="flex items-center gap-2 text-on-surface-variant hover:text-primary transition-all duration-150">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+<span class="hidden md:inline font-body-sm text-body-sm">Notifications</span>
+</button>
+</div>
+</header>
+<!-- Canvas Area -->
+<div class="p-margin-mobile md:p-margin-desktop max-w-[1440px] mx-auto w-full space-y-gutter">
+<!-- Quick Actions & Welcome -->
+<section class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+<div class="space-y-1">
+<h2 class="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-primary">System Overview</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Active monitoring for FlowForge AI environments</p>
+</div>
+<div class="flex flex-wrap gap-4">
+<button class="bg-primary text-surface px-6 py-2 rounded-lg font-body-sm text-body-sm font-bold flex items-center gap-2 hover:opacity-90 transition-opacity">
+<span class="material-symbols-outlined" style="font-size: 20px;">add</span>
+                        Create Workflow
+                    </button>
+<button class="border border-outline-variant bg-transparent text-primary px-6 py-2 rounded-lg font-body-sm text-body-sm font-bold flex items-center gap-2 hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined" style="font-size: 20px;">play_arrow</span>
+                        Run Workflow
+                    </button>
+<button class="text-on-surface-variant hover:text-primary px-4 py-2 font-body-sm text-body-sm flex items-center gap-2 transition-colors">
+<span class="material-symbols-outlined" style="font-size: 20px;">history</span>
+                        View History
+                    </button>
+</div>
+</section>
+<!-- Metric Cards (Bento style) -->
+<section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-gutter">
+<div class="bg-[#0a0a0a] border border-[#27272a] p-6 rounded-lg group hover:border-[#3b82f6] transition-colors">
+<div class="flex items-center justify-between mb-4">
+<span class="text-on-surface-variant font-label-caps text-label-caps uppercase tracking-widest">Total Workflows</span>
+<span class="material-symbols-outlined text-primary opacity-50 group-hover:opacity-100 transition-opacity">account_tree</span>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="text-4xl font-bold text-primary">24</span>
+<span class="text-xs text-green-500 font-label-mono">+2 new</span>
+</div>
+</div>
+<div class="bg-[#0a0a0a] border border-[#27272a] p-6 rounded-lg group hover:border-[#3b82f6] transition-colors">
+<div class="flex items-center justify-between mb-4">
+<span class="text-on-surface-variant font-label-caps text-label-caps uppercase tracking-widest">Running Executions</span>
+<span class="material-symbols-outlined text-[#3b82f6] opacity-50 group-hover:opacity-100 transition-opacity">sync</span>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="text-4xl font-bold text-primary">5</span>
+<span class="flex items-center gap-1 px-2 py-0.5 rounded border border-[#3b82f6]/30 bg-[#3b82f6]/10 text-[#3b82f6] text-[10px] font-label-mono">RUNNING</span>
+</div>
+</div>
+<div class="bg-[#0a0a0a] border border-[#27272a] p-6 rounded-lg group hover:border-error transition-colors">
+<div class="flex items-center justify-between mb-4">
+<span class="text-on-surface-variant font-label-caps text-label-caps uppercase tracking-widest">Pending Approvals</span>
+<span class="material-symbols-outlined text-on-surface-variant opacity-50 group-hover:opacity-100 transition-opacity">rule</span>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="text-4xl font-bold text-primary">2</span>
+<span class="text-xs text-outline font-label-mono">Required</span>
+</div>
+</div>
+<div class="bg-[#0a0a0a] border border-[#27272a] p-6 rounded-lg group hover:border-green-500 transition-colors">
+<div class="flex items-center justify-between mb-4">
+<span class="text-on-surface-variant font-label-caps text-label-caps uppercase tracking-widest">Success Rate</span>
+<span class="material-symbols-outlined text-green-500 opacity-50 group-hover:opacity-100 transition-opacity">verified</span>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="text-4xl font-bold text-primary">99.2%</span>
+<span class="text-xs text-green-500 font-label-mono">▲ 0.4%</span>
+</div>
+</div>
+</section>
+<!-- Tables Section -->
+<section class="grid grid-cols-1 xl:grid-cols-3 gap-gutter">
+<!-- Recent Workflows -->
+<div class="xl:col-span-2 bg-[#0a0a0a] border border-[#27272a] rounded-lg overflow-hidden">
+<div class="p-6 border-b border-[#27272a] flex items-center justify-between">
+<h3 class="font-headline-md text-headline-md text-primary">Recent Workflows</h3>
+<a class="text-blue-500 text-body-sm font-body-sm hover:underline" href="#">View all</a>
+</div>
+<div class="overflow-x-auto custom-scrollbar">
+<table class="w-full text-left">
+<thead>
+<tr class="border-b border-[#27272a] bg-surface-container-lowest">
+<th class="px-6 py-4 font-label-caps text-label-caps text-outline uppercase tracking-wider">Workflow Name</th>
+<th class="px-6 py-4 font-label-caps text-label-caps text-outline uppercase tracking-wider">Version</th>
+<th class="px-6 py-4 font-label-caps text-label-caps text-outline uppercase tracking-wider">Status</th>
+<th class="px-6 py-4 font-label-caps text-label-caps text-outline uppercase tracking-wider">Last Updated</th>
+<th class="px-6 py-4 font-label-caps text-label-caps text-outline uppercase tracking-wider"></th>
+</tr>
+</thead>
+<tbody class="divide-y divide-[#27272a]">
+<tr class="hover:bg-surface-container-low transition-colors duration-150">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-on-surface-variant" style="font-size: 18px;">terminal</span>
+<span class="font-body-sm text-body-sm text-primary">Data_Pipeline_Alpha</span>
+</div>
+</td>
+<td class="px-6 py-4 font-label-mono text-label-mono">v1.2.4</td>
+<td class="px-6 py-4">
+<span class="px-2 py-1 rounded text-[10px] font-label-mono border border-green-500/30 text-green-500 uppercase">Active</span>
+</td>
+<td class="px-6 py-4 font-body-sm text-body-sm text-on-surface-variant">2 hours ago</td>
+<td class="px-6 py-4 text-right">
+<button class="material-symbols-outlined text-outline hover:text-primary">more_vert</button>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors duration-150">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-on-surface-variant" style="font-size: 18px;">cloud_sync</span>
+<span class="font-body-sm text-body-sm text-primary">LLM_Inference_Router</span>
+</div>
+</td>
+<td class="px-6 py-4 font-label-mono text-label-mono">v0.9.1</td>
+<td class="px-6 py-4">
+<span class="px-2 py-1 rounded text-[10px] font-label-mono border border-outline-variant text-outline uppercase">Draft</span>
+</td>
+<td class="px-6 py-4 font-body-sm text-body-sm text-on-surface-variant">Yesterday</td>
+<td class="px-6 py-4 text-right">
+<button class="material-symbols-outlined text-outline hover:text-primary">more_vert</button>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors duration-150">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-on-surface-variant" style="font-size: 18px;">monitoring</span>
+<span class="font-body-sm text-body-sm text-primary">Audit_Log_Processor</span>
+</div>
+</td>
+<td class="px-6 py-4 font-label-mono text-label-mono">v2.0.0</td>
+<td class="px-6 py-4">
+<span class="px-2 py-1 rounded text-[10px] font-label-mono border border-green-500/30 text-green-500 uppercase">Active</span>
+</td>
+<td class="px-6 py-4 font-body-sm text-body-sm text-on-surface-variant">3 days ago</td>
+<td class="px-6 py-4 text-right">
+<button class="material-symbols-outlined text-outline hover:text-primary">more_vert</button>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors duration-150">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-on-surface-variant" style="font-size: 18px;">auto_fix</span>
+<span class="font-body-sm text-body-sm text-primary">Image_Upscale_Batch</span>
+</div>
+</td>
+<td class="px-6 py-4 font-label-mono text-label-mono">v1.1.0</td>
+<td class="px-6 py-4">
+<span class="px-2 py-1 rounded text-[10px] font-label-mono border border-green-500/30 text-green-500 uppercase">Active</span>
+</td>
+<td class="px-6 py-4 font-body-sm text-body-sm text-on-surface-variant">Oct 12, 2023</td>
+<td class="px-6 py-4 text-right">
+<button class="material-symbols-outlined text-outline hover:text-primary">more_vert</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Active Step / Execution Mini View -->
+<div class="bg-[#0a0a0a] border border-[#27272a] rounded-lg overflow-hidden flex flex-col">
+<div class="p-6 border-b border-[#27272a] flex items-center justify-between">
+<h3 class="font-headline-md text-headline-md text-primary">Live Executions</h3>
+<span class="flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+<span class="text-[10px] font-label-mono text-[#3b82f6]">REAL-TIME</span>
+</span>
+</div>
+<div class="flex-1 overflow-y-auto custom-scrollbar">
+<div class="divide-y divide-[#27272a]">
+<!-- Exec 1 -->
+<div class="p-5 hover:bg-surface-container-low transition-colors">
+<div class="flex justify-between items-start mb-2">
+<span class="font-body-sm text-body-sm font-semibold text-primary">Data_Pipeline_Alpha</span>
+<span class="font-label-mono text-[11px] text-on-surface-variant">4m 22s</span>
+</div>
+<div class="flex items-center gap-2 mb-4">
+<span class="w-2 h-2 rounded-full bg-blue-500"></span>
+<span class="text-xs text-on-surface-variant">Step: <strong class="text-primary">Validation</strong></span>
+</div>
+<div class="w-full bg-[#1c1b1b] h-1 rounded-full overflow-hidden">
+<div class="bg-blue-500 h-full w-[65%]" id="progress-1"></div>
+</div>
+</div>
+<!-- Exec 2 -->
+<div class="p-5 hover:bg-surface-container-low transition-colors">
+<div class="flex justify-between items-start mb-2">
+<span class="font-body-sm text-body-sm font-semibold text-primary">Security_Scanner_Bot</span>
+<span class="font-label-mono text-[11px] text-on-surface-variant">12m 04s</span>
+</div>
+<div class="flex items-center gap-2 mb-4">
+<span class="w-2 h-2 rounded-full bg-green-500"></span>
+<span class="text-xs text-on-surface-variant">Step: <strong class="text-primary">Cleanup</strong></span>
+</div>
+<div class="w-full bg-[#1c1b1b] h-1 rounded-full overflow-hidden">
+<div class="bg-green-500 h-full w-[92%]"></div>
+</div>
+</div>
+<!-- Exec 3 -->
+<div class="p-5 hover:bg-surface-container-low transition-colors">
+<div class="flex justify-between items-start mb-2">
+<span class="font-body-sm text-body-sm font-semibold text-primary">Market_Trend_API</span>
+<span class="font-label-mono text-[11px] text-red-500">Failed</span>
+</div>
+<div class="flex items-center gap-2 mb-2">
+<span class="w-2 h-2 rounded-full bg-red-500"></span>
+<span class="text-xs text-on-surface-variant">Step: <strong class="text-primary">Auth_Hook</strong></span>
+</div>
+<p class="text-[10px] text-red-400 bg-red-500/10 p-2 rounded border border-red-500/20">Error: ECONNREFUSED 127.0.0.1:443</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Bottom Table: Detailed Executions -->
+<section class="bg-[#0a0a0a] border border-[#27272a] rounded-lg overflow-hidden">
+<div class="p-6 border-b border-[#27272a]">
+<h3 class="font-headline-md text-headline-md text-primary">Recent Execution History</h3>
+</div>
+<div class="overflow-x-auto custom-scrollbar">
+<table class="w-full text-left">
+<thead>
+<tr class="border-b border-[#27272a] bg-surface-container-lowest">
+<th class="px-6 py-4 font-label-caps text-label-caps text-outline uppercase tracking-wider">Workflow</th>
+<th class="px-6 py-4 font-label-caps text-label-caps text-outline uppercase tracking-wider">Execution ID</th>
+<th class="px-6 py-4 font-label-caps text-label-caps text-outline uppercase tracking-wider">Status</th>
+<th class="px-6 py-4 font-label-caps text-label-caps text-outline uppercase tracking-wider">Duration</th>
+<th class="px-6 py-4 font-label-caps text-label-caps text-outline uppercase tracking-wider">Timeline</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-[#27272a]">
+<tr class="hover:bg-surface-container-low transition-colors">
+<td class="px-6 py-4 font-body-sm text-body-sm text-primary">Audit_Log_Processor</td>
+<td class="px-6 py-4 font-label-mono text-label-mono text-outline">#EX-90221</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2 text-green-500">
+<span class="material-symbols-outlined" style="font-size: 16px;">check_circle</span>
+<span class="text-[11px] font-label-mono">COMPLETED</span>
+</div>
+</td>
+<td class="px-6 py-4 font-label-mono text-label-mono">1m 12s</td>
+<td class="px-6 py-4">
+<div class="flex gap-1">
+<div class="w-4 h-1 bg-green-500 rounded-full"></div>
+<div class="w-4 h-1 bg-green-500 rounded-full"></div>
+<div class="w-4 h-1 bg-green-500 rounded-full"></div>
+<div class="w-4 h-1 bg-green-500 rounded-full"></div>
+</div>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors">
+<td class="px-6 py-4 font-body-sm text-body-sm text-primary">Database_Backup_Global</td>
+<td class="px-6 py-4 font-label-mono text-label-mono text-outline">#EX-90218</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2 text-green-500">
+<span class="material-symbols-outlined" style="font-size: 16px;">check_circle</span>
+<span class="text-[11px] font-label-mono">COMPLETED</span>
+</div>
+</td>
+<td class="px-6 py-4 font-label-mono text-label-mono">42m 55s</td>
+<td class="px-6 py-4">
+<div class="flex gap-1">
+<div class="w-4 h-1 bg-green-500 rounded-full"></div>
+<div class="w-4 h-1 bg-green-500 rounded-full"></div>
+<div class="w-4 h-1 bg-green-500 rounded-full"></div>
+<div class="w-4 h-1 bg-green-500 rounded-full"></div>
+</div>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors">
+<td class="px-6 py-4 font-body-sm text-body-sm text-primary">Image_Upscale_Batch</td>
+<td class="px-6 py-4 font-label-mono text-label-mono text-outline">#EX-90192</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2 text-red-500">
+<span class="material-symbols-outlined" style="font-size: 16px;">error</span>
+<span class="text-[11px] font-label-mono">FAILED</span>
+</div>
+</td>
+<td class="px-6 py-4 font-label-mono text-label-mono">12s</td>
+<td class="px-6 py-4">
+<div class="flex gap-1">
+<div class="w-4 h-1 bg-red-500 rounded-full"></div>
+<div class="w-4 h-1 bg-[#27272a] rounded-full"></div>
+<div class="w-4 h-1 bg-[#27272a] rounded-full"></div>
+<div class="w-4 h-1 bg-[#27272a] rounded-full"></div>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="p-4 border-t border-[#27272a] flex justify-center">
+<button class="text-outline text-label-caps hover:text-primary transition-colors">Load more history</button>
+</div>
+</section>
+</div>
+<!-- Footer -->
+<footer class="mt-auto p-margin-mobile md:p-margin-desktop border-t border-outline-variant bg-surface-container-lowest">
+<div class="flex flex-col md:flex-row justify-between items-center gap-4 text-outline font-label-mono text-[10px]">
+<div class="flex items-center gap-4">
+<span>STATUS: ALL SYSTEMS OPERATIONAL</span>
+<span class="w-2 h-2 rounded-full bg-green-500"></span>
+</div>
+<div>© 2024 FLOWFORGE AI - CORE ENGINE V3.2.1-RELEASE</div>
+<div class="flex gap-4">
+<a class="hover:text-primary" href="#">API DOCS</a>
+<a class="hover:text-primary" href="#">SUPPORT</a>
+<a class="hover:text-primary" href="#">TERMS</a>
+</div>
+</div>
+</footer>
+</main>
+<!-- Mobile Navigation Toggle Logic -->
+<script>
+        // Simple mock interaction for progress bars
+        const progressBar = document.getElementById('progress-1');
+        if (progressBar) {
+            let width = 65;
+            setInterval(() => {
+                width = width >= 100 ? 0 : width + 0.5;
+                progressBar.style.width = width + '%';
+            }, 500);
+        }
+
+        // Toggle Sidebar on mobile (conceptually - since button is there)
+        const menuBtn = document.querySelector('button .material-symbols-outlined[data-icon="menu"]');
+        const sidebar = document.getElementById('sidebar');
+        if (menuBtn && sidebar) {
+            menuBtn.parentElement.addEventListener('click', () => {
+                sidebar.classList.toggle('hidden');
+                sidebar.classList.toggle('flex');
+                sidebar.classList.toggle('w-full');
+            });
+        }
+    </script>
+</body></html>

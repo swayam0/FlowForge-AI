@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>FlowForge AI - Execution Monitor</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary-fixed-dim": "#c6c6c7",
+                        "primary-container": "#e2e2e2",
+                        "surface-container": "#201f1f",
+                        "inverse-surface": "#e5e2e1",
+                        "tertiary-container": "#e2e2e2",
+                        "secondary-fixed": "#d8e2ff",
+                        "on-surface": "#e5e2e1",
+                        "background": "#000000",
+                        "primary": "#ffffff",
+                        "outline-variant": "#27272a",
+                        "error-container": "#93000a",
+                        "error": "#ef4444",
+                        "on-primary-fixed": "#1a1c1c",
+                        "secondary-fixed-dim": "#adc6ff",
+                        "on-tertiary": "#2f3131",
+                        "surface-container-highest": "#353434",
+                        "on-tertiary-fixed": "#1a1c1c",
+                        "primary-fixed": "#e2e2e2",
+                        "on-primary": "#000000",
+                        "on-error": "#ffffff",
+                        "on-secondary-fixed-variant": "#004395",
+                        "on-background": "#e5e2e1",
+                        "inverse-primary": "#5d5f5f",
+                        "outline": "#52525b",
+                        "surface-tint": "#c6c6c7",
+                        "on-secondary-fixed": "#001a42",
+                        "on-primary-container": "#636565",
+                        "surface-container-lowest": "#0e0e0e",
+                        "on-error-container": "#ffdad6",
+                        "surface-container-high": "#0a0a0a",
+                        "tertiary-fixed-dim": "#c6c6c7",
+                        "on-secondary-container": "#e6ecff",
+                        "on-secondary": "#002e6a",
+                        "inverse-on-surface": "#313030",
+                        "on-tertiary-fixed-variant": "#454747",
+                        "on-primary-fixed-variant": "#454747",
+                        "on-tertiary-container": "#636565",
+                        "secondary": "#adc6ff",
+                        "on-surface-variant": "#a1a1aa",
+                        "surface-bright": "#1a1a1a",
+                        "surface": "#000000",
+                        "surface-variant": "#0a0a0a",
+                        "tertiary-fixed": "#e2e2e2",
+                        "surface-container-low": "#0a0a0a",
+                        "secondary-container": "#0566d9",
+                        "surface-dim": "#000000",
+                        "tertiary": "#ffffff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "sidebar-width": "240px",
+                        "margin-desktop": "32px",
+                        "container-max": "1440px",
+                        "unit": "4px",
+                        "gutter": "24px",
+                        "margin-mobile": "16px"
+                    },
+                    "fontFamily": {
+                        "label-mono": ["JetBrains Mono"],
+                        "body-lg": ["Inter"],
+                        "label-caps": ["Inter"],
+                        "headline-lg-mobile": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "display": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "headline-lg": ["Inter"]
+                    },
+                    "fontSize": {
+                        "label-mono": ["12px", {"lineHeight": "1.2", "letterSpacing": "0.02em", "fontWeight": "500"}],
+                        "body-lg": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                        "label-caps": ["11px", {"lineHeight": "1.2", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                        "headline-lg-mobile": ["24px", {"lineHeight": "1.2", "fontWeight": "600"}],
+                        "body-sm": ["14px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                        "display": ["48px", {"lineHeight": "1.1", "letterSpacing": "-0.04em", "fontWeight": "600"}],
+                        "headline-md": ["20px", {"lineHeight": "1.4", "letterSpacing": "-0.02em", "fontWeight": "500"}],
+                        "headline-lg": ["32px", {"lineHeight": "1.2", "letterSpacing": "-0.03em", "fontWeight": "600"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            background-color: #000000;
+            color: #e5e2e1;
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+        .terminal-scroll::-webkit-scrollbar {
+            width: 4px;
+        }
+        .terminal-scroll::-webkit-scrollbar-track {
+            background: #000000;
+        }
+        .terminal-scroll::-webkit-scrollbar-thumb {
+            background: #27272a;
+        }
+        @keyframes pulse-green {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1.05); opacity: 1; }
+            100% { transform: scale(0.95); opacity: 0.8; }
+        }
+        .animate-pulse-green {
+            animation: pulse-green 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        .node-active::after {
+            content: '';
+            position: absolute;
+            left: -1px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #ffffff;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="flex flex-col min-h-screen">
+<!-- TopAppBar -->
+<header class="fixed top-0 left-0 right-0 h-16 bg-surface flex items-center justify-between px-4 z-50 border-b border-outline-variant">
+<div class="flex items-center gap-3">
+<button class="p-2 hover:bg-surface-container-highest transition-all duration-150 rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined text-primary" data-icon="arrow_back">arrow_back</span>
+</button>
+<h1 class="font-headline-md text-headline-md font-bold text-primary tracking-tight">Execution Monitor</h1>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-2 hover:bg-surface-container-highest transition-all duration-150 rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined text-primary" data-icon="share">share</span>
+</button>
+</div>
+</header>
+<main class="flex-grow pt-20 pb-28 px-4 max-w-md mx-auto w-full space-y-6">
+<!-- Header / Status Indicator -->
+<section class="p-4 bg-surface-container-high border border-outline-variant rounded-lg space-y-4">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2 px-3 py-1 bg-green-500/10 border border-green-500/30 rounded-full">
+<span class="w-2 h-2 bg-green-500 rounded-full animate-pulse-green"></span>
+<span class="font-label-mono text-label-mono text-green-500 uppercase">RUNNING</span>
+</div>
+<div class="flex items-center gap-3">
+<div class="text-right">
+<p class="text-[10px] font-label-caps text-on-surface-variant uppercase">Retry</p>
+<p class="font-label-mono text-label-mono text-primary">0</p>
+</div>
+</div>
+</div>
+<div>
+<h2 class="text-[40px] font-display font-semibold text-primary tracking-tighter leading-none">04:12:05</h2>
+<p class="font-label-caps text-on-surface-variant uppercase mt-1 tracking-wider">Elapsed Execution Time</p>
+</div>
+</section>
+<!-- Execution Path (Horizontal Breadcrumb) -->
+<section class="overflow-x-auto terminal-scroll pb-2">
+<div class="flex items-center gap-2 whitespace-nowrap min-w-max">
+<div class="flex items-center gap-2">
+<span class="font-label-mono text-label-mono text-on-surface-variant">Input</span>
+<span class="material-symbols-outlined text-[14px] text-outline" data-icon="chevron_right">chevron_right</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="font-label-mono text-label-mono text-on-surface-variant">Retrieval</span>
+<span class="material-symbols-outlined text-[14px] text-outline" data-icon="chevron_right">chevron_right</span>
+</div>
+<div class="flex items-center gap-2 px-2 py-1 bg-primary/10 border border-primary/20 rounded">
+<span class="font-label-mono text-label-mono text-primary">Extraction</span>
+<span class="material-symbols-outlined text-[14px] text-outline" data-icon="chevron_right">chevron_right</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="font-label-mono text-label-mono text-outline">Approval</span>
+</div>
+</div>
+</section>
+<!-- Progress Section -->
+<section class="flex flex-col items-center justify-center p-8 bg-surface-container-high border border-outline-variant rounded-lg relative overflow-hidden">
+<!-- Background detail -->
+<div class="absolute top-0 right-0 p-2 opacity-10">
+<span class="material-symbols-outlined text-[64px]" data-icon="robot_2">robot_2</span>
+</div>
+<div class="relative w-32 h-32 flex items-center justify-center">
+<svg class="w-full h-full -rotate-90">
+<circle cx="64" cy="64" fill="transparent" r="58" stroke="#1c1b1b" stroke-width="8"></circle>
+<circle cx="64" cy="64" fill="transparent" r="58" stroke="#ffffff" stroke-dasharray="364.4" stroke-dashoffset="91.1" stroke-linecap="round" stroke-width="8"></circle>
+</svg>
+<div class="absolute flex flex-col items-center">
+<span class="font-display text-headline-lg text-primary">75%</span>
+</div>
+</div>
+<div class="mt-6 text-center">
+<p class="font-label-caps text-on-surface-variant uppercase tracking-widest text-[10px]">Current Node</p>
+<h3 class="font-headline-md text-primary mt-1">AI Extraction</h3>
+<p class="font-body-sm text-on-surface-variant mt-2 max-w-[200px]">Processing document structure and key-value pair identification...</p>
+</div>
+</section>
+<!-- Execution Timeline -->
+<section class="space-y-4">
+<h4 class="font-label-caps text-on-surface-variant uppercase tracking-widest px-1">Flow Timeline</h4>
+<div class="space-y-0 relative border-l border-outline-variant ml-2">
+<!-- Completed -->
+<div class="relative pl-6 pb-6">
+<div class="absolute left-[-5px] top-1 w-2 h-2 rounded-full bg-green-500"></div>
+<div class="flex justify-between items-start">
+<div>
+<p class="font-body-sm font-semibold text-primary">Document Retrieval</p>
+<p class="font-label-mono text-[10px] text-on-surface-variant">SUCCESS • 1.2s</p>
+</div>
+<span class="material-symbols-outlined text-green-500 text-sm" data-icon="check_circle">check_circle</span>
+</div>
+</div>
+<!-- Completed -->
+<div class="relative pl-6 pb-6">
+<div class="absolute left-[-5px] top-1 w-2 h-2 rounded-full bg-green-500"></div>
+<div class="flex justify-between items-start">
+<div>
+<p class="font-body-sm font-semibold text-primary">AI Classification</p>
+<p class="font-label-mono text-[10px] text-on-surface-variant">SUCCESS • 0.8s</p>
+</div>
+<span class="material-symbols-outlined text-green-500 text-sm" data-icon="check_circle">check_circle</span>
+</div>
+</div>
+<!-- Active -->
+<div class="relative pl-6 pb-6 node-active">
+<div class="absolute left-[-5px] top-1 w-2 h-2 rounded-full bg-primary animate-pulse"></div>
+<div class="flex justify-between items-start">
+<div>
+<p class="font-body-sm font-semibold text-primary">AI Extraction</p>
+<p class="font-label-mono text-[10px] text-primary">IN_PROGRESS • 4.5s</p>
+</div>
+<div class="flex space-x-1">
+<span class="w-1 h-1 bg-primary rounded-full animate-bounce"></span>
+<span class="w-1 h-1 bg-primary rounded-full animate-bounce" style="animation-delay: 0.2s"></span>
+<span class="w-1 h-1 bg-primary rounded-full animate-bounce" style="animation-delay: 0.4s"></span>
+</div>
+</div>
+</div>
+<!-- Pending -->
+<div class="relative pl-6">
+<div class="absolute left-[-5px] top-1 w-2 h-2 rounded-full bg-outline-variant"></div>
+<div>
+<p class="font-body-sm font-semibold text-outline">Manual Approval</p>
+<p class="font-label-mono text-[10px] text-outline">PENDING</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Live Logs -->
+<section class="space-y-4">
+<div class="flex items-center justify-between px-1">
+<h4 class="font-label-caps text-on-surface-variant uppercase tracking-widest">Live Logs</h4>
+<div class="flex items-center gap-2">
+<span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
+<span class="font-label-mono text-[10px] text-on-surface-variant">Connected</span>
+</div>
+</div>
+<div class="bg-black border border-outline-variant rounded-lg p-3 font-label-mono text-[11px] h-64 overflow-y-auto terminal-scroll space-y-1.5 shadow-2xl">
+<div class="flex gap-2">
+<span class="text-outline">12:04:10</span>
+<span class="text-blue-400">[INFO]</span>
+<span class="text-on-surface">Initializing execution cycle ID: 9f82...</span>
+</div>
+<div class="flex gap-2">
+<span class="text-outline">12:04:11</span>
+<span class="text-green-400">[SUCCESS]</span>
+<span class="text-on-surface">Document source verified: AWS S3 Bucket</span>
+</div>
+<div class="flex gap-2">
+<span class="text-outline">12:04:12</span>
+<span class="text-blue-400">[INFO]</span>
+<span class="text-on-surface">Pulling document: invoice_2023_09.pdf</span>
+</div>
+<div class="flex gap-2">
+<span class="text-outline">12:04:14</span>
+<span class="text-green-400">[SUCCESS]</span>
+<span class="text-on-surface">Document retrieved. Size: 1.2MB</span>
+</div>
+<div class="flex gap-2">
+<span class="text-outline">12:04:15</span>
+<span class="text-blue-400">[INFO]</span>
+<span class="text-on-surface">Running Classifier (Llama-3-70b)</span>
+</div>
+<div class="flex gap-2">
+<span class="text-outline">12:04:16</span>
+<span class="text-green-400">[SUCCESS]</span>
+<span class="text-on-surface">Classification: FINANCIAL_INVOICE (Conf: 0.99)</span>
+</div>
+<div class="flex gap-2">
+<span class="text-outline">12:04:17</span>
+<span class="text-blue-400">[INFO]</span>
+<span class="text-on-surface">Executing AI Extraction node...</span>
+</div>
+<div class="flex gap-2">
+<span class="text-outline">12:04:18</span>
+<span class="text-yellow-400">[WARN]</span>
+<span class="text-on-surface">Sub-optimal layout detected, using OCR fallback</span>
+</div>
+<div class="flex gap-2">
+<span class="text-outline">12:04:21</span>
+<span class="text-blue-400">[INFO]</span>
+<span class="text-on-surface">Extracting field: TOTAL_AMOUNT...</span>
+</div>
+<div class="flex gap-2">
+<span class="text-outline">12:04:22</span>
+<span class="text-blue-400">[INFO]</span>
+<span class="text-on-surface">Extracting field: VENDOR_ID...</span>
+</div>
+<div class="animate-pulse flex gap-2">
+<span class="text-outline">12:04:25</span>
+<span class="text-white">_</span>
+</div>
+</div>
+</section>
+</main>
+<!-- Action Buttons (Sticky Bottom) -->
+<footer class="fixed bottom-0 left-0 right-0 p-4 bg-surface/80 backdrop-blur-md border-t border-outline-variant z-50">
+<div class="max-w-md mx-auto grid grid-cols-3 gap-2">
+<button class="flex flex-col items-center justify-center py-2 px-1 border border-outline-variant rounded hover:bg-surface-container-high transition-colors group">
+<span class="material-symbols-outlined text-primary mb-1" data-icon="pause">pause</span>
+<span class="font-label-caps text-[10px] text-on-surface-variant uppercase">Pause</span>
+</button>
+<button class="flex flex-col items-center justify-center py-2 px-1 border border-outline-variant rounded opacity-30 cursor-not-allowed" disabled="">
+<span class="material-symbols-outlined text-outline mb-1" data-icon="play_arrow">play_arrow</span>
+<span class="font-label-caps text-[10px] text-outline uppercase">Resume</span>
+</button>
+<button class="flex flex-col items-center justify-center py-2 px-1 border border-red-500/50 bg-red-500/10 rounded hover:bg-red-500/20 transition-colors group">
+<span class="material-symbols-outlined text-red-500 mb-1" data-icon="cancel">cancel</span>
+<span class="font-label-caps text-[10px] text-red-500 uppercase">Cancel</span>
+</button>
+</div>
+</footer>
+<script>
+        // Simple auto-scroll for terminal
+        const terminal = document.querySelector('.terminal-scroll');
+        if (terminal) {
+            setInterval(() => {
+                terminal.scrollTop = terminal.scrollHeight;
+            }, 3000);
+        }
+
+        // Simulating the time increase
+        let seconds = 15065; // Starting seconds for 04:11:05 (ish)
+        const timeDisplay = document.querySelector('h2');
+        
+        function updateTime() {
+            seconds++;
+            const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
+            const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
+            const s = (seconds % 60).toString().padStart(2, '0');
+            if (timeDisplay) timeDisplay.textContent = `${h}:${m}:${s}`;
+        }
+        
+        setInterval(updateTime, 1000);
+    </script>
+</body></html>

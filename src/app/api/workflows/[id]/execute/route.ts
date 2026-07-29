@@ -19,7 +19,7 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
     const body = await request.json();
     const input = body.input || {};
     
-    const executionId = await engine.startExecution(params.id, input);
+    const executionId = await engine.startRun(params.id, input);
     
     return successResponse({ executionId }, 'Execution started', 201);
   } catch (error) {

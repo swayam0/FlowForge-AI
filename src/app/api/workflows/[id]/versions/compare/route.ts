@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { successResponse, errorResponse } from '../../../../../responseHelper';
+import { successResponse, errorResponse } from '../../../../responseHelper';
 import connectToDatabase from '../../../../../../utils/db';
 import { WorkflowVersionModel } from '../../../../../../models/WorkflowVersion';
 

@@ -1,13 +1,13 @@
 'use client';
 
-import { Hero } from '../../components/marketing/Hero';
-import { WorkflowSection } from '../../components/marketing/WorkflowSection';
-import { FeaturesSection } from '../../components/marketing/FeaturesSection';
-import { ExecutionTimelineSection } from '../../components/marketing/ExecutionTimelineSection';
-import { ArchitectureSection } from '../../components/marketing/ArchitectureSection';
-import { TestimonialsSection } from '../../components/marketing/TestimonialsSection';
-import { FaqSection } from '../../components/marketing/FaqSection';
-import { CtaSection } from '../../components/marketing/CtaSection';
+import { Hero } from '@/components/marketing/Hero';
+import { WorkflowSection } from '@/components/marketing/WorkflowSection';
+import { FeaturesSection } from '@/components/marketing/FeaturesSection';
+import { ExecutionTimelineSection } from '@/components/marketing/ExecutionTimelineSection';
+import { ArchitectureSection } from '@/components/marketing/ArchitectureSection';
+import { TestimonialsSection } from '@/components/marketing/TestimonialsSection';
+import { FaqSection } from '@/components/marketing/FaqSection';
+import { CtaSection } from '@/components/marketing/CtaSection';
 
 export default function LandingPage() {
   return (

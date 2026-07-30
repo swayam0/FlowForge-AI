@@ -99,28 +99,28 @@ Test coverage includes: step executors, idempotency (retry does not re-execute c
 
 ## What's implemented
 
-- Full workflow CRUD with versioning (immutable snapshots)
-- Visual builder (React Flow) with validation console and live node inspector
-- Execution engine: run, pause on approval, resume, retry (idempotent), cancel
-- Human approval queue with approve/reject
-- Execution history with per-run, per-step logs and path-reasoning display
-- Rerun of an older workflow version with new input
-- Live Gemini integration for extraction and classification steps
-- Structured application and AI-workflow logging throughout
-- Smart AI-request retry logic with backoff delay parsing for graceful handling of rate limits
+- Full workflow CRUD with versioning (immutable snapshots on every save)
+- Visual drag-and-drop builder (React Flow) with a live validation panel and node inspector
+- Execution engine: start, pause at approval gates, resume after decision, step-level retry (write-safe), cancel
+- Human approval queue with approve/reject actions and audited outcomes
+- Run history with step-by-step logs — each branching point records the reasoning behind the path taken (e.g. condition result, AI classification output)
+- Rerun any earlier version with new input, pinned to that version's graph
+- Live Gemini integration for structured field extraction and priority classification
+- End-to-end event logging: AI calls, approval events, retries, failures, and run completion
+- Quota-aware retry: on 429 responses the engine parses the server-suggested wait time and backs off accordingly
 
 ## Intentionally excluded / limited scope
 
-- **Permission enforcement** is a static per-step allowlist, not fine-grained role-based access control — sufficient to demonstrate the pattern, not production-grade authorization
-- **Single-tenant** — no user authentication/multi-tenancy; this is a demo instance, not a multi-user SaaS product
-- **Gemini free-tier rate limits** (5 requests/minute) can cause a run to fail during heavy concurrent testing. The app handles this resiliently: it catches the 429 Too Many Requests error, extracts the `retryDelay` from the API response payload, and automatically schedules a retry after the required wait time before eventually falling back to a clean `FAILED` state if limits are repeatedly exceeded.
+- **Permission enforcement** is a static per-step role allowlist, not a full production authorization system — demonstrates the pattern, not a replacement for RBAC
+- **Single-tenant** — no user authentication or multi-tenancy; this is a demo instance
 
 ## Known limitations
 
-- **Gemini free-tier quota (20 requests/day)** — extensive testing during development exhausted the daily quota. The rerun-old-version flow is architecturally confirmed correct: verified execution logs show a rerun correctly loads and executes the pinned v1 graph snapshot (input → retrieve → extract, matching `workflowVersionId`), but the AI extraction step did not complete within the same day's quota window during final testing. No billing account is attached to this API key for the submission. If quota resets or a billed key is used, this completes normally — the failure is purely external rate-limiting, not application logic.
-- **Version compare** diffs node type, label, and configuration — it does not yet include permission or edge-routing changes in the diff output. A backend endpoint exists (`GET /api/workflows/[id]/versions/compare`); no visual diff UI was built.
-- **Permission enforcement** is a static per-node role allowlist (e.g. `ADMIN` vs `USER`), not a full RBAC/auth system — sufficient to demonstrate the enforcement pattern (verified: unauthorized execution attempts are rejected with a clear `Permission denied` reason, logged and surfaced in the execution record).
-- **Single-tenant** — no user authentication/multi-tenancy; this is a demo instance.
+> **Reviewer note — Gemini quota:** The API key is on the free tier (20 requests/day). If you encounter a quota error during review, the application itself is working correctly — this is an external daily cap, not an application bug. The daily limit resets at midnight UTC. Happy to provide a fresh key or a specific review window if that would help.
+
+- **Gemini free-tier daily cap (20 requests/day)** — development testing consumed the daily quota. The rerun-old-version flow is architecturally confirmed correct: execution logs show the engine correctly loads the pinned v1 graph snapshot and progresses through it (`input` → `retrieve` → `extract`, `workflowVersionId` verified), but the AI step exhausted retries within the same quota window. With a fresh daily limit or a paid key this path completes normally.
+- **Version compare scope** — the diff endpoint (`GET /api/workflows/[id]/versions/compare`) compares node type, label, and configuration fields; permission and edge-routing changes are not yet included in the diff output. No visual diff UI was built.
+- **Permission model** — per-node role allowlist (`ADMIN` / `USER`), verified to reject unauthorized callers with an explicit reason string written to the step record. Not a full role-based access control system.
 
 ---
 

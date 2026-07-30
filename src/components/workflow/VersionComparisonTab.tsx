@@ -131,8 +131,8 @@ export function VersionComparisonTab({ workflowId }: { workflowId: string }) {
                 <ReactFlowProvider>
                   <GraphDiffCanvas 
                     diff={diff} 
-                    baseNodes={baseVersion.snapshot.nodes} 
-                    baseEdges={baseVersion.snapshot.edges} 
+                    baseNodes={baseVersion?.snapshot?.nodes ?? []} 
+                    baseEdges={baseVersion?.snapshot?.edges ?? []} 
                   />
                 </ReactFlowProvider>
               </section>

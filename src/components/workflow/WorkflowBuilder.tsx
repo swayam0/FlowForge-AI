@@ -167,6 +167,41 @@ export function WorkflowBuilderInner({ initialWorkflow }: { initialWorkflow?: an
       setNodes(initialNodes);
       setEdges(initialEdges);
       setStoreNodes(initialWorkflow.nodes);
+    } else {
+      // New blank workflow: add a helpful starter template
+      const starterNodes: ReactFlowNode[] = [
+        {
+          id: 'start-1',
+          type: 'customNode',
+          position: { x: 100, y: 220 },
+          data: { label: 'Trigger Input', type: WorkflowStepType.STRUCTURED_INPUT, configuration: {} },
+        },
+        {
+          id: 'ai-1',
+          type: 'customNode',
+          position: { x: 400, y: 220 },
+          data: { label: 'Classify Request', type: WorkflowStepType.AI_CLASSIFICATION, configuration: { provider: 'Google', model: 'gemini-3.5-flash', prompt: 'Classify the incoming request.' } },
+        },
+        {
+          id: 'report-1',
+          type: 'customNode',
+          position: { x: 700, y: 220 },
+          data: { label: 'Final Report', type: WorkflowStepType.FINAL_REPORT, configuration: { format: 'json' } },
+        },
+      ];
+      const starterEdges = [
+        { id: 'e-start-ai', source: 'start-1', target: 'ai-1', type: 'animatedEdge' },
+        { id: 'e-ai-report', source: 'ai-1', target: 'report-1', type: 'animatedEdge' },
+      ];
+      setNodes(starterNodes);
+      setEdges(starterEdges);
+      setStoreNodes(starterNodes.map(n => ({
+        id: n.id,
+        label: n.data.label as string,
+        type: n.data.type as WorkflowStepType,
+        configuration: n.data.configuration as Record<string, unknown>,
+        position: n.position,
+      })));
     }
   }, [initialWorkflow, setNodes, setEdges, setStoreNodes]);
 
@@ -178,9 +213,11 @@ export function WorkflowBuilderInner({ initialWorkflow }: { initialWorkflow?: an
       description,
       nodes: nodes.map((n: any) => {
         const storeNode = storeNodes.find(sn => sn.id === n.id);
+        const nodeLabel = n.data.label || n.data.name || (storeNode ? (storeNode as any).label || (storeNode as any).name : undefined) || 'Unknown Node';
         return {
           id: n.id,
-          data: { label: n.data.label || n.data.name || (storeNode ? (storeNode as any).label || (storeNode as any).name : undefined) || 'Unknown Node' },
+          label: nodeLabel,
+          data: { label: nodeLabel },
           type: n.data.type,
           configuration: (storeNode ? storeNode.configuration : n.data.configuration) || {},
           position: n.position
@@ -277,6 +314,17 @@ export function WorkflowBuilderInner({ initialWorkflow }: { initialWorkflow?: an
     event.dataTransfer.dropEffect = 'move';
   }, []);
 
+  const PRETTY_LABELS: Record<string, string> = {
+    [WorkflowStepType.STRUCTURED_INPUT]: 'Trigger Input',
+    [WorkflowStepType.AI_EXTRACTION]: 'AI Extraction',
+    [WorkflowStepType.AI_CLASSIFICATION]: 'AI Classification',
+    [WorkflowStepType.DETERMINISTIC_CONDITION]: 'Condition Check',
+    [WorkflowStepType.HUMAN_APPROVAL]: 'Human Approval',
+    [WorkflowStepType.DOCUMENT_RETRIEVAL]: 'Document Retrieval',
+    [WorkflowStepType.MOCK_EXTERNAL_ACTION]: 'External Action',
+    [WorkflowStepType.FINAL_REPORT]: 'Final Report',
+  };
+
   const onDrop = useCallback(
     (event: React.DragEvent) => {
       event.preventDefault();
@@ -292,26 +340,42 @@ export function WorkflowBuilderInner({ initialWorkflow }: { initialWorkflow?: an
       takeSnapshot();
       
       const id = `node-${Date.now()}`;
+      const label = PRETTY_LABELS[type] || type.replace(/_/g, ' ');
       const newNode: ReactFlowNode = {
         id,
         type: 'customNode',
         position,
-        data: { label: type.replace('_', ' '), type, configuration: {} },
+        data: { label, type, configuration: {} },
       };
 
-      setNodes((nds) => nds.concat(newNode));
+      setNodes((nds) => {
+        // Auto-connect: if only one node exists, link it to the new one
+        const existingNodes = nds;
+        if (existingNodes.length === 1) {
+          const lastNode = existingNodes[existingNodes.length - 1];
+          const autoEdge = {
+            id: `e-${lastNode.id}-${id}`,
+            source: lastNode.id,
+            target: id,
+            type: 'animatedEdge',
+          };
+          setEdges(eds => [...eds, autoEdge]);
+        }
+        return nds.concat(newNode);
+      });
       setStoreNodes((prevNodes: any) => [...prevNodes, {
         id: newNode.id,
-        label: newNode.data.label,
+        label,
         type: newNode.data.type,
+        position: newNode.position,
         configuration: newNode.data.configuration
       }]);
       
-      // Auto-select new node
+      // Auto-select new node so config panel opens immediately
       setSelectedNodeId(newNode.id);
       setRightOpen(true);
     },
-    [screenToFlowPosition, setNodes, setStoreNodes, takeSnapshot, setSelectedNodeId]
+    [screenToFlowPosition, setNodes, setEdges, setStoreNodes, takeSnapshot, setSelectedNodeId]
   );
 
   const defaultEdgeOptions: DefaultEdgeOptions = { 

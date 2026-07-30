@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import connectToDatabase from '../../../../../utils/db';
 import { StepExecutionModel } from '../../../../../models/StepExecution';
+import { successResponse, errorResponse } from '../../../responseHelper';
 
 export async function GET(
   request: NextRequest,
@@ -24,12 +25,9 @@ export async function GET(
       metadata: step.output?.metadata || step.input?.configuration || {},
     }));
 
-    return NextResponse.json({ success: true, data: formattedSteps });
+    return successResponse(formattedSteps, 'Steps retrieved successfully');
   } catch (error: any) {
     console.error('Error fetching execution steps:', error);
-    return NextResponse.json(
-      { success: false, error: { message: error.message } },
-      { status: 500 }
-    );
+    return errorResponse('Failed to fetch execution steps', error, 500);
   }
 }

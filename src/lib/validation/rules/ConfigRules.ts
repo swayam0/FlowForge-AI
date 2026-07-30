@@ -71,7 +71,7 @@ export const nodeConfigRule: ValidationRule = {
               title: 'Missing Reviewer',
               description: `Node "${node.label}" must have a designated reviewer.`,
               nodeId: node.id,
-              severity: 'ERROR',
+              severity: 'WARNING',
               suggestedFix: 'Assign a user or role as the reviewer.'
             });
           }
@@ -85,7 +85,7 @@ export const nodeConfigRule: ValidationRule = {
               title: 'Missing Endpoint',
               description: `Node "${node.label}" requires an API endpoint.`,
               nodeId: node.id,
-              severity: 'ERROR',
+              severity: 'WARNING',
               suggestedFix: 'Provide a valid URL.'
             });
           }

@@ -67,7 +67,7 @@ export default function HistoryPage() {
       return matchesSearch && matchesStatus;
     });
 
-    // Grouping by Date
+// Grouping by Date
     const groups: { [key: string]: Execution[] } = {};
     
     filtered.forEach((h: Execution) => {
@@ -78,6 +78,13 @@ export default function HistoryPage() {
       }
       
       const date = new Date(h.startedAt);
+      
+      if (isNaN(date.getTime())) {
+        if (!groups['Invalid Date']) groups['Invalid Date'] = [];
+        groups['Invalid Date'].push(h);
+        return;
+      }
+      
       let groupKey = '';
       
       if (isToday(date)) groupKey = 'Today';
@@ -93,7 +100,7 @@ export default function HistoryPage() {
   }, [history, searchQuery, statusFilter]);
 
   const formatDuration = (ms: number) => {
-    if (!ms) return '-';
+    if (!ms || isNaN(ms)) return '-';
     const s = Math.floor(ms / 1000);
     const m = Math.floor(s / 60);
     return m > 0 ? `${m}m ${s % 60}s` : `${s}s`;
@@ -226,7 +233,7 @@ export default function HistoryPage() {
                                   <span>•</span>
                                   <span className="font-mono">{h.id.substring(0,8)}</span>
                                   <span>•</span>
-                                  <span>{h.startedAt ? format(new Date(h.startedAt), 'h:mm:ss a') : '-'}</span>
+                                  <span>{h.startedAt && !isNaN(new Date(h.startedAt).getTime()) ? format(new Date(h.startedAt), 'h:mm:ss a') : '-'}</span>
                                 </div>
                               </div>
                             </div>
@@ -345,7 +352,7 @@ export default function HistoryPage() {
                                   {log.stepId || log.nodeId || log.eventType || 'System Event'}
                                 </span>
                                 <span className="text-[10px] font-mono text-gray-600 shrink-0">
-                                  {format(new Date(log.timestamp), 'HH:mm:ss')}
+                                  {log.timestamp && !isNaN(new Date(log.timestamp).getTime()) ? format(new Date(log.timestamp), 'HH:mm:ss') : '-'}
                                 </span>
                               </div>
                               {log.message && (

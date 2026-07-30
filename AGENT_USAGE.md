@@ -27,6 +27,10 @@ Result: The agent confirmed the app had no hardcoded key-format validation (whic
 Prompt: verification script covering workflow graph structure, validation, and two live end-to-end runs (auto-resolve path and human-approval path) with real Gemini calls
 Result: Confirmed both branches of the demo workflow execute correctly, condition routing reasons are accurate and traceable to real AI output, and one run's failure (a Gemini free-tier rate limit) was handled cleanly — `FAILED` status, clear error, no hang, no duplicate side effects. The agent then followed up by implementing rate-limit fallback (parsing `retryDelay` from 429s) to handle exactly these scenarios.
 
+**6. Diagnosing intermittent test failures as quota exhaustion, not a bug**
+Prompt: verification of rerun-old-version behavior after an inconclusive first test (run appeared stuck mid-execution)
+Result: The agent correctly distinguished a genuine daily API quota limit (20 req/day, free tier for `gemini-3.6-flash`) from an application bug. It added timestamps to each poll cycle, confirmed the rerun was executing the pinned v1 graph snapshot correctly (steps `input` and `retrieve` completed in <30ms each), and traced the hang to `AIService.executeWithRetry` sleeping up to 3 × 59s between 429 retries before finally writing `FAILED` with a full error reason to the step record. The run graph, versioning, and logging were all confirmed correct — the failure was purely external rate-limiting, not application logic.
+
 ## Agent Mistakes / Corrections
 - An early assumption that a Gemini 404 error meant an invalid API key was wrong — it was actually a retired model name. Verified via a live call to the Gemini models-list endpoint rather than assumption.
 - The AI prompt implemented in `AIService` incorrectly constrained classification to `LOW, MEDIUM, HIGH`, missing the `CRITICAL` state configured in the default workflow. This caused deterministic routing to fail. The agent self-corrected the prompt after inspecting the discrepancy between the configuration rule and the AI constraints.

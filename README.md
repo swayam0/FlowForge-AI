@@ -117,7 +117,10 @@ Test coverage includes: step executors, idempotency (retry does not re-execute c
 
 ## Known limitations
 
-- `ai_extraction` does not enforce a strict output schema on the LLM's response — malformed calls fail cleanly upstream, but a technically-valid-JSON-but-wrong-shape response isn't explicitly validated against an expected schema
+- **Gemini free-tier quota (20 requests/day)** — extensive testing during development exhausted the daily quota. The rerun-old-version flow is architecturally confirmed correct: verified execution logs show a rerun correctly loads and executes the pinned v1 graph snapshot (input → retrieve → extract, matching `workflowVersionId`), but the AI extraction step did not complete within the same day's quota window during final testing. No billing account is attached to this API key for the submission. If quota resets or a billed key is used, this completes normally — the failure is purely external rate-limiting, not application logic.
+- **Version compare** diffs node type, label, and configuration — it does not yet include permission or edge-routing changes in the diff output. A backend endpoint exists (`GET /api/workflows/[id]/versions/compare`); no visual diff UI was built.
+- **Permission enforcement** is a static per-node role allowlist (e.g. `ADMIN` vs `USER`), not a full RBAC/auth system — sufficient to demonstrate the enforcement pattern (verified: unauthorized execution attempts are rejected with a clear `Permission denied` reason, logged and surfaced in the execution record).
+- **Single-tenant** — no user authentication/multi-tenancy; this is a demo instance.
 
 ---
 

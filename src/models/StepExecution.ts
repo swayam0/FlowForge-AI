@@ -17,4 +17,6 @@ const StepExecutionSchema = new Schema<IStepExecution>({
   completedAt: { type: Date },
 });
 
+StepExecutionSchema.index({ startedAt: -1 });
+
 export const StepExecutionModel = mongoose.models.StepExecution || mongoose.model<IStepExecution>('StepExecution', StepExecutionSchema);

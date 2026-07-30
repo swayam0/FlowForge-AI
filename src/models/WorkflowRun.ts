@@ -9,5 +9,7 @@ const WorkflowRunSchema = new Schema<IWorkflowRun>({
   status: { type: String, enum: Object.values(ExecutionStatus), default: ExecutionStatus.PENDING },
   input: { type: Schema.Types.Mixed, default: {} },
 }, { timestamps: { createdAt: true, updatedAt: false }, toJSON: { virtuals: true }, toObject: { virtuals: true } });
+WorkflowRunSchema.index({ createdAt: -1 });
+WorkflowRunSchema.index({ status: 1 });
 
 export const WorkflowRunModel = mongoose.models.WorkflowRun || mongoose.model<IWorkflowRun>('WorkflowRun', WorkflowRunSchema);

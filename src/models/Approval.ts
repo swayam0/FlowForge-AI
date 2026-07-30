@@ -13,4 +13,7 @@ const ApprovalSchema = new Schema<IApproval>({
   approvedAt: { type: Date },
 }, { timestamps: true });
 
+ApprovalSchema.index({ createdAt: -1 });
+ApprovalSchema.index({ status: 1 });
+
 export const ApprovalModel = mongoose.models.Approval || mongoose.model<IApproval>('Approval', ApprovalSchema);

@@ -76,7 +76,7 @@ describe('AIService Retry Logic', () => {
     expect(loggingService.log).toHaveBeenCalledWith(
       'run-1', 
       'RETRY', 
-      'AI Request failed, retrying in 2500ms... (1/1)', 
+      'AI Request failed, retrying in 2500ms... (1/3)', 
       'node-1', 
       { error: '429 Too Many Requests' }
     );

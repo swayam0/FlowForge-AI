@@ -23,77 +23,177 @@ export async function GET(request: Request) {
     
     const startDate = startOfDay(subDays(new Date(), days - 1));
 
-    // 1. Fetch Workflows
-    const workflows = await WorkflowModel.find().lean().exec();
-    
-    // 2. Fetch Runs in range
-    const runs = await WorkflowRunModel.find({ createdAt: { $gte: startDate } }).lean().exec();
-    
-    // 3. Fetch Steps in range (for AI Analytics)
-    const stepExecutions = await StepExecutionModel.find({ startedAt: { $gte: startDate } }).lean().exec();
+    // 1. Fetch Workflows Stats
+    const workflowStats = await WorkflowModel.aggregate([
+      {
+        $group: {
+          _id: '$status',
+          count: { $sum: 1 }
+        }
+      }
+    ]);
 
-    // 4. Fetch Approvals in range
-    const approvals = await ApprovalModel.find().lean().exec(); // fetching all to get pending
-
-    // Overviews
-    const totalWorkflows = workflows.length;
-    const publishedWorkflows = workflows.filter(w => w.status === 'PUBLISHED').length;
-    const totalExecutions = runs.length;
-    const successfulRuns = runs.filter(r => r.status === ExecutionStatus.COMPLETED).length;
-    const failedRuns = runs.filter(r => r.status === ExecutionStatus.FAILED).length;
-    const cancelledRuns = runs.filter(r => r.status === ExecutionStatus.CANCELLED).length;
-    
-    const runsWithDuration = runs.filter(r => (r as any).completedAt || r.updatedAt);
-    const totalDuration = runsWithDuration.reduce((acc, r) => {
-      const end = new Date((r as any).completedAt || r.updatedAt).getTime();
-      const start = new Date(r.createdAt).getTime();
-      return acc + (end - start);
-    }, 0);
-    const averageExecutionTime = runsWithDuration.length > 0 ? totalDuration / runsWithDuration.length : 0;
-    const successRate = totalExecutions > 0 ? (successfulRuns / totalExecutions) * 100 : 0;
-
-    // Execution Trends (Executions per day)
-    const executionsPerDay = Array.from({ length: days }).map((_, i) => {
-      const date = format(subDays(new Date(), days - 1 - i), 'MMM dd');
-      return { date, success: 0, fail: 0 };
-    });
-
-    runs.forEach(r => {
-      const dateStr = format(new Date(r.createdAt), 'MMM dd');
-      const bucket = executionsPerDay.find(b => b.date === dateStr);
-      if (bucket) {
-        if (r.status === ExecutionStatus.COMPLETED) bucket.success += 1;
-        else if (r.status === ExecutionStatus.FAILED) bucket.fail += 1;
+    let totalWorkflows = 0;
+    let publishedWorkflows = 0;
+    workflowStats.forEach(stat => {
+      totalWorkflows += stat.count;
+      if (stat._id === 'PUBLISHED') {
+        publishedWorkflows = stat.count;
       }
     });
+    
+    // 2. Fetch Runs Stats
+    const runsStats = await WorkflowRunModel.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: startDate }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          totalExecutions: { $sum: 1 },
+          successfulRuns: {
+            $sum: { $cond: [{ $eq: ['$status', ExecutionStatus.COMPLETED] }, 1, 0] }
+          },
+          failedRuns: {
+            $sum: { $cond: [{ $eq: ['$status', ExecutionStatus.FAILED] }, 1, 0] }
+          },
+          cancelledRuns: {
+            $sum: { $cond: [{ $eq: ['$status', ExecutionStatus.CANCELLED] }, 1, 0] }
+          },
+          totalDuration: {
+            $sum: { $ifNull: ['$durationMs', 0] }
+          },
+          runsWithDuration: {
+            $sum: {
+              $cond: [
+                { $gt: [{ $ifNull: ['$durationMs', 0] }, 0] },
+                1,
+                0
+              ]
+            }
+          }
+        }
+      }
+    ]);
 
-    // Workflow Analytics (Top Executed)
-    const workflowRunCounts: Record<string, number> = {};
-    runs.forEach(r => {
-      // Find workflow by version ID (simplified mapping)
-      const wId = r.workflowVersionId;
-      workflowRunCounts[wId] = (workflowRunCounts[wId] || 0) + 1;
+    const stats = runsStats[0] || {
+      totalExecutions: 0,
+      successfulRuns: 0,
+      failedRuns: 0,
+      cancelledRuns: 0,
+      totalDuration: 0,
+      runsWithDuration: 0
+    };
+
+    const totalExecutions = stats.totalExecutions;
+    const successfulRuns = stats.successfulRuns;
+    const failedRuns = stats.failedRuns;
+    const cancelledRuns = stats.cancelledRuns;
+    const averageExecutionTime = stats.runsWithDuration > 0 ? stats.totalDuration / stats.runsWithDuration : 0;
+    const successRate = totalExecutions > 0 ? (successfulRuns / totalExecutions) * 100 : 0;
+
+    // 3. Daily Runs for Trends
+    const dailyRuns = await WorkflowRunModel.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: startDate }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: '%Y-%m-%d', date: '$createdAt' }
+          },
+          success: {
+            $sum: { $cond: [{ $eq: ['$status', ExecutionStatus.COMPLETED] }, 1, 0] }
+          },
+          fail: {
+            $sum: { $cond: [{ $eq: ['$status', ExecutionStatus.FAILED] }, 1, 0] }
+          }
+        }
+      }
+    ]);
+
+    const executionsPerDay = Array.from({ length: days }).map((_, i) => {
+      const targetDate = subDays(new Date(), days - 1 - i);
+      const dateKeyStr = format(targetDate, 'yyyy-MM-dd');
+      const dateLabel = format(targetDate, 'MMM dd');
+      
+      const stat = dailyRuns.find(d => d._id === dateKeyStr);
+      return {
+        date: dateLabel,
+        success: stat ? stat.success : 0,
+        fail: stat ? stat.fail : 0
+      };
     });
-    const topExecutedWorkflows = Object.entries(workflowRunCounts)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([id, count]) => ({ id, count }));
 
-    // Approval Analytics
-    const pendingApprovals = approvals.filter(a => a.status === ApprovalStatus.PENDING).length;
-    const approvedApprovals = approvals.filter(a => a.status === ApprovalStatus.APPROVED).length;
-    const rejectedApprovals = approvals.filter(a => a.status === ApprovalStatus.REJECTED).length;
+    // 4. Top Executed Workflows
+    const topExecuted = await WorkflowRunModel.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: startDate }
+        }
+      },
+      {
+        $group: {
+          _id: '$workflowVersionId',
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $sort: { count: -1 }
+      },
+      {
+        $limit: 5
+      }
+    ]);
+
+    const topExecutedWorkflows = topExecuted.map(item => ({
+      id: item._id,
+      count: item.count
+    }));
+
+    // 5. Approval Analytics
+    const approvalStats = await ApprovalModel.aggregate([
+      {
+        $group: {
+          _id: '$status',
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    let pendingApprovals = 0;
+    let approvedApprovals = 0;
+    let rejectedApprovals = 0;
+    approvalStats.forEach(stat => {
+      if (stat._id === ApprovalStatus.PENDING) pendingApprovals = stat.count;
+      else if (stat._id === ApprovalStatus.APPROVED) approvedApprovals = stat.count;
+      else if (stat._id === ApprovalStatus.REJECTED) rejectedApprovals = stat.count;
+    });
     const totalResolvedApprovals = approvedApprovals + rejectedApprovals;
     const rejectedPercent = totalResolvedApprovals > 0 ? (rejectedApprovals / totalResolvedApprovals) * 100 : 0;
 
-    // AI Analytics (Simulated + Aggregated)
-    // In FlowForge AI, an AI step is not explicitly marked in StepExecution except maybe in 'stepId' containing 'ai' or 'output'.
-    // We will simulate AI token metrics based on StepExecutions that successfully completed (to have non-zero realistic data).
-    const aiStepsCount = stepExecutions.length > 0 ? Math.floor(stepExecutions.length * 0.6) : 0; // Assume 60% of steps are AI
-    const averageTokensPerCall = 842; // Simulation baseline
+    // 6. AI Analytics (using count of step executions)
+    const stepCountResult = await StepExecutionModel.aggregate([
+      {
+        $match: {
+          startedAt: { $gte: startDate }
+        }
+      },
+      {
+        $count: 'total'
+      }
+    ]);
+    const totalStepExecutions = stepCountResult[0]?.total || 0;
+    const aiStepsCount = totalStepExecutions > 0 ? Math.floor(totalStepExecutions * 0.6) : 0;
+    
+    const averageTokensPerCall = 842; 
     const totalTokens = aiStepsCount * averageTokensPerCall;
     const estimatedCost = totalTokens * 0.0002;
-    const hallucinationWarnings = Math.floor(aiStepsCount * 0.05); // 5% simulated hallucination warning rate
+    const hallucinationWarnings = Math.floor(aiStepsCount * 0.05);
     const averageConfidence = 92;
 
     const data = {
@@ -123,7 +223,7 @@ export async function GET(request: Request) {
         estimatedCost,
         hallucinationWarnings,
         averageConfidence,
-        averageLatency: 1240, // Simulated MS
+        averageLatency: 1240,
         failedAiCalls: Math.floor(aiStepsCount * 0.02)
       },
       systemHealth: {

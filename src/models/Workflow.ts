@@ -38,4 +38,6 @@ const WorkflowSchema = new Schema<IWorkflow>({
   createdBy: { type: String, required: true },
 }, { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } });
 
+WorkflowSchema.index({ status: 1 });
+
 export const WorkflowModel = mongoose.models.Workflow || mongoose.model<IWorkflow>('Workflow', WorkflowSchema);

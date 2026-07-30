@@ -11,7 +11,7 @@ import { WorkflowRunModel } from '@/models/WorkflowRun';
 import { StepExecutionModel } from '@/models/StepExecution';
 import { ApprovalModel } from '@/models/Approval';
 import { WorkflowModel } from '@/models/Workflow';
-import { ExecutionStatus, WorkflowStepType } from '@/types/common';
+import { ExecutionStatus, WorkflowStepType, WorkflowStatus, ApprovalStatus } from '@/types/common';
 
 // ---------------------------------------------------------------------------
 // Helpers

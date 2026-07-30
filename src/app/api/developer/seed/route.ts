@@ -5,11 +5,15 @@ import { WorkflowModel } from '../../../../models/Workflow';
 import { WorkflowRunModel } from '../../../../models/WorkflowRun';
 import { WorkflowStatus, WorkflowStepType, ExecutionStatus } from '../../../../types/common';
 import { successResponse, errorResponse } from '../../responseHelper';
+import { EmptyBodySchema } from '../../../../validators/api.schema';
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
     await connectToDatabase();
     
+    const body = await request.json().catch(() => ({}));
+    EmptyBodySchema.parse(body);
+
     // Check if demo workflow already exists
     const existing = await WorkflowModel.findOne({ name: 'Support Ticket Triage' });
     if (existing) {

@@ -1,6 +1,6 @@
 export interface ExecutionResult {
   status: 'SUCCESS' | 'FAILED' | 'WAITING_APPROVAL';
-  output: any;
+  output: Record<string, unknown> | unknown;
   nextNodeId?: string;
   reason?: string;
 }

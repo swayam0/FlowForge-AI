@@ -27,16 +27,14 @@ export async function POST(request: Request) {
   try {
     await connectToDatabase();
     
-    const body = await request.json();
+    const body = await request.json().catch(() => ({}));
     console.log(`[API POST /workflows] Payload received for new workflow:`, body.name);
 
-    if (!body.name) {
-      return errorResponse('Workflow name is required', null, 400);
-    }
+    const parsedBody = CreateWorkflowSchema.parse(body);
     
-    const createdBy = body.createdBy || 'anonymous'; // Auth not implemented yet
+    const createdBy = parsedBody.createdBy || 'anonymous'; // Auth not implemented yet
     
-    const workflow = await workflowRepo.create(body, createdBy);
+    const workflow = await workflowRepo.create(parsedBody, createdBy);
     
     const workflowJson = workflow.toJSON();
     

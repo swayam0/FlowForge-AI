@@ -37,11 +37,11 @@ describe('AIService Retry Logic', () => {
     };
     
     // @ts-ignore
-    vi.mocked(GeminiProvider).mockImplementation(function() { return mockProvider; } as any);
+    vi.mocked(GeminiProvider).mockImplementation(function() { return mockProvider; } as unknown as typeof GeminiProvider);
 
     const error429 = new Error('429 Too Many Requests');
-    (error429 as any).status = 429;
-    (error429 as any).errorDetails = [
+    (error429 as Error & { status?: number, errorDetails?: unknown[] }).status = 429;
+    (error429 as Error & { status?: number, errorDetails?: unknown[] }).errorDetails = [
       {
         "@type": "type.googleapis.com/google.rpc.RetryInfo",
         "retryDelay": "2.5s"
@@ -90,10 +90,10 @@ describe('AIService Retry Logic', () => {
     };
     
     // @ts-ignore
-    vi.mocked(GeminiProvider).mockImplementation(function() { return mockProvider; } as any);
+    vi.mocked(GeminiProvider).mockImplementation(function() { return mockProvider; } as unknown as typeof GeminiProvider);
 
     const error429 = new Error('429 Too Many Requests');
-    (error429 as any).status = 429;
+    (error429 as Error & { status?: number }).status = 429;
 
     mockProvider.generateJSON
       .mockRejectedValueOnce(error429)

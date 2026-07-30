@@ -6,6 +6,7 @@ import { WorkflowRunRepository } from '../../../../../repositories/WorkflowRunRe
 import { WorkflowRepository } from '../../../../../repositories/WorkflowRepository';
 import { LoggingService } from '../../../../../server/services/LoggingService';
 import { WorkflowEngine } from '../../../../../server/engine/WorkflowEngine';
+import { RerunWorkflowSchema } from '../../../../../validators/api.schema';
 
 const workflowRepo = new WorkflowRepository();
 const runRepo = new WorkflowRunRepository();
@@ -20,9 +21,11 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
     const originalExecution = await runRepo.getById(params.id);
     if (!originalExecution) return errorResponse('Original execution not found', null, 404);
 
-    const body = await request.json();
+    const body = await request.json().catch(() => ({}));
+    const parsedBody = RerunWorkflowSchema.parse(body);
+
     // Allow overriding the input, otherwise use original input
-    const input = body.input || originalExecution.input;
+    const input = parsedBody.input || originalExecution.input;
 
     const newExecutionId = await engine.startRun(originalExecution.workflowVersionId, input);
 

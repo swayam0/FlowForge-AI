@@ -4,6 +4,7 @@ import { successResponse, errorResponse } from '../../responseHelper';
 import connectToDatabase from '../../../../utils/db';
 import { WorkflowRepository } from '../../../../repositories/WorkflowRepository';
 import mongoose from 'mongoose';
+import { UpdateWorkflowSchema } from '../../../../validators/workflow.schema';
 
 const workflowRepo = new WorkflowRepository();
 
@@ -35,9 +36,10 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
 
     await connectToDatabase();
     
-    const body = await request.json();
+    const body = await request.json().catch(() => ({}));
+    const parsedBody = UpdateWorkflowSchema.parse(body);
     
-    const workflow = await workflowRepo.update(params.id, body);
+    const workflow = await workflowRepo.update(params.id, parsedBody);
     
     if (!workflow) {
       console.warn(`[API PUT /workflows/:id] Workflow not found for ID: ${params.id}`);

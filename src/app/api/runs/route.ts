@@ -6,6 +6,7 @@ import { WorkflowRepository } from '../../../repositories/WorkflowRepository';
 import { WorkflowRunRepository } from '../../../repositories/WorkflowRunRepository';
 import { LoggingService } from '../../../server/services/LoggingService';
 import { WorkflowEngine } from '../../../server/engine/WorkflowEngine';
+import { StartRunSchema } from '../../../validators/run.schema';
 
 const workflowRepo = new WorkflowRepository();
 const runRepo = new WorkflowRunRepository();
@@ -16,13 +17,10 @@ export async function POST(request: Request) {
   try {
     await connectToDatabase();
     
-    const body = await request.json();
-    const workflowVersionId = body.workflowVersionId;
-    const input = body.input || {};
-    
-    if (!workflowVersionId) {
-      return errorResponse('workflowVersionId is required', null, 400);
-    }
+    const body = await request.json().catch(() => ({}));
+    const parsedBody = StartRunSchema.parse(body);
+    const workflowVersionId = parsedBody.workflowVersionId;
+    const input = parsedBody.input;
     
     const runId = await engine.startRun(workflowVersionId, input);
     

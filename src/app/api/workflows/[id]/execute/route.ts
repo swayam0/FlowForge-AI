@@ -9,6 +9,7 @@ import { LoggingService } from '../../../../../server/services/LoggingService';
 import { WorkflowEngine } from '../../../../../server/engine/WorkflowEngine';
 
 import { WorkflowVersionModel } from '../../../../../models/WorkflowVersion';
+import { ExecuteWorkflowSchema } from '../../../../../validators/api.schema';
 
 const workflowRepo = new WorkflowRepository();
 const runRepo = new WorkflowRunRepository();
@@ -20,8 +21,9 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
   try {
     await connectToDatabase();
     
-    const body = await request.json();
-    const input = body.input || {};
+    const body = await request.json().catch(() => ({}));
+    const parsedBody = ExecuteWorkflowSchema.parse(body);
+    const input = parsedBody.input;
     
     // Find latest version, or fallback to workflow ID for unversioned seeded workflows
     let targetVersionId = params.id;

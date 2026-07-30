@@ -4,7 +4,7 @@ export interface WorkflowNode {
   id: string;
   type: WorkflowStepType;
   label: string;
-  configuration: Record<string, any>; // Flexible config depending on step type
+  configuration: Record<string, unknown>; // Flexible config depending on step type
   position: Position;
   permissions?: string[]; // e.g. roles that can view/edit this node or approve it
 }
@@ -16,7 +16,7 @@ export interface WorkflowEdge {
   label?: string;
   sourceHandle?: string;
   targetHandle?: string;
-  condition?: Record<string, any>;
+  condition?: Record<string, unknown>;
 }
 
 export interface Workflow {

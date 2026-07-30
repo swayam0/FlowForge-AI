@@ -25,8 +25,8 @@ export class AIService {
     executionId: string, 
     nodeId: string, 
     prompt: string, 
-    context: Record<string, any>
-  ): Promise<any> {
+    context: Record<string, unknown>
+  ): Promise<Record<string, unknown>> {
     const maxRetries = 3;
     let attempt = 0;
     const provider = await this.getProvider();
@@ -49,21 +49,22 @@ export class AIService {
         });
 
         return result;
-      } catch (error: any) {
+      } catch (error: unknown) {
         attempt++;
+        const err = error as { status?: number; message?: string; errorDetails?: Array<{ '@type'?: string; retryDelay?: string | { seconds?: string; nanos?: string } }> };
         if (attempt > maxRetries) {
-          throw new Error(`AI Request failed after ${maxRetries} retries. Last error: ${error.message}`);
+          throw new Error(`AI Request failed after ${maxRetries} retries. Last error: ${err.message}`);
         }
 
         let delayMs = 1000; // default small delay
-        if (error.status === 429 || (error.message && error.message.includes('429'))) {
+        if (err.status === 429 || (err.message && err.message.includes('429'))) {
           try {
-            let retryInfo = error.errorDetails?.find?.((d: any) => d['@type']?.includes('RetryInfo'));
-            if (!retryInfo && error.message) {
-              const match = error.message.match(/\[\{.*\}\]$/);
+            let retryInfo = err.errorDetails?.find?.((d) => d['@type']?.includes('RetryInfo'));
+            if (!retryInfo && err.message) {
+              const match = err.message.match(/\[\{.*\}\]$/);
               if (match) {
-                const details = JSON.parse(match[0]);
-                retryInfo = details.find((d: any) => d['@type']?.includes('RetryInfo'));
+                const details = JSON.parse(match[0]) as Array<{ '@type'?: string; retryDelay?: string | { seconds?: string; nanos?: string } }>;
+                retryInfo = details.find((d) => d['@type']?.includes('RetryInfo'));
               }
             }
             if (retryInfo && retryInfo.retryDelay) {
@@ -71,7 +72,7 @@ export class AIService {
               if (typeof delayStr === 'string' && delayStr.endsWith('s')) {
                 delayMs = parseFloat(delayStr) * 1000;
               } else if (typeof delayStr === 'object' && delayStr.seconds !== undefined) {
-                delayMs = (parseInt(delayStr.seconds) || 0) * 1000 + (parseInt(delayStr.nanos) || 0) / 1000000;
+                delayMs = (parseInt(delayStr.seconds || '0') || 0) * 1000 + (parseInt(delayStr.nanos || '0') || 0) / 1000000;
               }
               delayMs = Math.min(delayMs, 60000); // cap at 60s
             }
@@ -80,18 +81,19 @@ export class AIService {
           }
         }
         
-        await this.loggingService.log(executionId, EventType.RETRY, `AI Request failed, retrying in ${delayMs}ms... (${attempt}/${maxRetries})`, nodeId, { error: error.message });
+        await this.loggingService.log(executionId, EventType.RETRY, `AI Request failed, retrying in ${delayMs}ms... (${attempt}/${maxRetries})`, nodeId, { error: err.message });
         await new Promise(resolve => setTimeout(resolve, delayMs));
       }
     }
+    throw new Error('Unreachable');
   }
 
-  async extract(executionId: string, nodeId: string, inputData: Record<string, any>): Promise<any> {
+  async extract(executionId: string, nodeId: string, inputData: Record<string, unknown>): Promise<Record<string, unknown>> {
     const prompt = `Extract structured information from the supplied document. Return JSON only.`;
     return this.executeWithRetry(executionId, nodeId, prompt, inputData);
   }
 
-  async classify(executionId: string, nodeId: string, inputData: Record<string, any>): Promise<any> {
+  async classify(executionId: string, nodeId: string, inputData: Record<string, unknown>): Promise<Record<string, unknown>> {
     const prompt = `Classify the document priority as: LOW, MEDIUM, HIGH, or CRITICAL. Return JSON only in format: { "priority": "CRITICAL", "reasoning": "Explain why this priority was chosen" }. Never return markdown.`;
     return this.executeWithRetry(executionId, nodeId, prompt, inputData);
   }

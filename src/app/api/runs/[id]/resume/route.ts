@@ -6,6 +6,7 @@ import { WorkflowRepository } from '../../../../../repositories/WorkflowReposito
 import { WorkflowRunRepository } from '../../../../../repositories/WorkflowRunRepository';
 import { LoggingService } from '../../../../../server/services/LoggingService';
 import { WorkflowEngine } from '../../../../../server/engine/WorkflowEngine';
+import { EmptyBodySchema } from '../../../../../validators/api.schema';
 
 const workflowRepo = new WorkflowRepository();
 const runRepo = new WorkflowRunRepository();
@@ -16,6 +17,10 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
   const params = await props.params;
   try {
     await connectToDatabase();
+
+    const body = await request.json().catch(() => ({}));
+    EmptyBodySchema.parse(body);
+
     await engine.resumeRun(params.id);
     
     return successResponse(null, 'Run resumed');

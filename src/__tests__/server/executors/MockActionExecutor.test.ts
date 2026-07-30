@@ -25,8 +25,8 @@ describe('MockActionExecutor', () => {
     const result = await executor.execute(context);
     
     expect(result.status).toBe('SUCCESS');
-    expect(result.output.skipped).toBe(false);
-    expect(result.output.actionType).toBe('EMAIL');
+    expect((result.output as Record<string, unknown>).skipped).toBe(false);
+    expect((result.output as Record<string, unknown>).actionType).toBe('EMAIL');
 
     const savedAction = await MockActionModel.findOne({ executionId: 'exec-1' });
     expect(savedAction).toBeTruthy();
@@ -50,7 +50,7 @@ describe('MockActionExecutor', () => {
     const result2 = await executor.execute(context);
 
     expect(result2.status).toBe('SUCCESS');
-    expect(result2.output.skipped).toBe(true);
-    expect(result2.output.message).toContain('Duplicate');
+    expect((result2.output as Record<string, unknown>).skipped).toBe(true);
+    expect((result2.output as Record<string, unknown>).message as string).toContain('Duplicate');
   });
 });

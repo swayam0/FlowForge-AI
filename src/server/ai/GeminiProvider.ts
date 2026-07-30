@@ -18,7 +18,7 @@ export class GeminiProvider implements AIProvider {
     return this.modelName;
   }
 
-  async generateJSON(prompt: string, context?: Record<string, any>): Promise<any> {
+  async generateJSON(prompt: string, context?: Record<string, unknown>): Promise<Record<string, unknown>> {
     const model = this.genAI.getGenerativeModel({ 
       model: this.modelName,
       generationConfig: {

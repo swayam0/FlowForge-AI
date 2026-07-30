@@ -18,8 +18,9 @@ import {
   BackgroundVariant
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { BaseNode } from './CustomNodes';
 import { ConfigPanel } from './ConfigPanel';
+import { BaseNode } from './CustomNodes';
+import { AnimatedEdge } from './CustomEdges';
 import { useWorkflowBuilderStore } from '../../lib/store';
 import { WorkflowStepType } from '../../types/common';
 import { api } from '../../lib/api';
@@ -27,13 +28,17 @@ import { useRouter } from 'next/navigation';
 import { 
   Network, Play, ChevronDown, CheckCircle, AlertCircle, 
   Terminal, Search, FileText, Database, UserCheck, PlaySquare, FileCheck,
-  PanelLeftClose, PanelRightClose, PanelLeft, PanelRight, Save, PlayCircle, Share, Globe, Settings
+  PanelLeftClose, PanelRightClose, PanelLeft, PanelRight, Save, PlayCircle, Share, Globe, Settings, Monitor
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { toast } from 'sonner';
 
 const nodeTypes = {
   customNode: BaseNode,
+};
+
+const edgeTypes = {
+  animatedEdge: AnimatedEdge,
 };
 
 const CATEGORIES = [
@@ -97,6 +102,8 @@ export function WorkflowBuilderInner({ initialWorkflow }: { initialWorkflow?: an
   
   const [leftOpen, setLeftOpen] = useState(true);
   const [rightOpen, setRightOpen] = useState(true);
+  
+  const [librarySearch, setLibrarySearch] = useState('');
 
   // Sync from store for Undo/Redo
   useEffect(() => {
@@ -168,7 +175,7 @@ export function WorkflowBuilderInner({ initialWorkflow }: { initialWorkflow?: an
         const storeNode = storeNodes.find(sn => sn.id === n.id);
         return {
           id: n.id,
-          label: n.data.label || n.data.name || (storeNode ? (storeNode as any).label || (storeNode as any).name : undefined) || 'Unknown Node',
+          data: { label: n.data.label || n.data.name || (storeNode ? (storeNode as any).label || (storeNode as any).name : undefined) || 'Unknown Node' },
           type: n.data.type,
           configuration: (storeNode ? storeNode.configuration : n.data.configuration) || {},
           position: n.position
@@ -196,10 +203,11 @@ export function WorkflowBuilderInner({ initialWorkflow }: { initialWorkflow?: an
         }
         router.push(`/workflows/${newId}`);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('[WorkflowBuilder] Save error:', err);
       const action = initialWorkflow ? 'update' : 'create';
-      toast.error(err.message || `Unable to ${action} workflow. Please try again.`);
+      const message = err instanceof Error ? err.message : `Unable to ${action} workflow. Please try again.`;
+      toast.error(message);
     }
   };
 
@@ -212,8 +220,11 @@ export function WorkflowBuilderInner({ initialWorkflow }: { initialWorkflow?: an
       await api.executeWorkflow(initialWorkflow.id);
       toast.success('Execution started');
       router.push(`/executions`);
-    } catch (err) {
-      toast.error('Failed to start execution');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to start execution';
+      toast.error(message, {
+        action: { label: 'Retry', onClick: () => handleRun() }
+      });
     }
   };
 
@@ -299,9 +310,7 @@ export function WorkflowBuilderInner({ initialWorkflow }: { initialWorkflow?: an
   );
 
   const defaultEdgeOptions: DefaultEdgeOptions = { 
-    type: 'smoothstep', 
-    animated: true, // Always animated to simulate flowing data in this mock
-    style: { stroke: '#3b82f6', strokeWidth: 2 }
+    type: 'animatedEdge', 
   };
 
   const onSelectionChange = useCallback(({ nodes }: { nodes: ReactFlowNode[] }) => {
@@ -314,8 +323,16 @@ export function WorkflowBuilderInner({ initialWorkflow }: { initialWorkflow?: an
   }, [setSelectedNodeId]);
 
   return (
-    <div className="flex flex-col flex-1 h-[calc(100vh-64px)] w-full overflow-hidden">
-      {/* Top Toolbar */}
+    <>
+      <div className="lg:hidden flex flex-col items-center justify-center flex-1 h-[calc(100vh-64px)] w-full p-6 text-center bg-[#050505]">
+        <div className="bg-[#0a0a0a] border border-white/5 shadow-xl shadow-black/50 rounded-xl p-8 max-w-sm">
+          <Monitor className="h-12 w-12 text-blue-500/50 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-white mb-2 tracking-tight">Desktop Recommended</h3>
+          <p className="text-gray-400 text-sm leading-relaxed">The Workflow Builder requires a larger screen for the best visual editing experience. Please use a desktop or tablet device to build and edit workflows.</p>
+        </div>
+      </div>
+      <div className="hidden lg:flex flex-col flex-1 h-[calc(100vh-64px)] w-full overflow-hidden">
+        {/* Top Toolbar */}
       <div className="w-full bg-[#0a0a0a] border-b border-outline-variant flex justify-between items-center px-6 h-16 shrink-0 z-30 shadow-sm">
         <div className="flex items-center gap-4">
           <div className="flex items-center justify-center h-8 w-8 rounded-md bg-blue-500/10 border border-blue-500/20">
@@ -323,9 +340,10 @@ export function WorkflowBuilderInner({ initialWorkflow }: { initialWorkflow?: an
           </div>
           <div className="flex flex-col justify-center">
             <input 
+              aria-label="Workflow Name"
               value={name} 
               onChange={e => setName(e.target.value)} 
-              className="bg-transparent border-none p-0 focus:ring-0 font-display text-lg font-semibold text-white leading-tight" 
+              className="bg-transparent border-none p-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 font-display text-lg font-semibold text-white leading-tight rounded-sm" 
               placeholder="Workflow Name" 
             />
             <span className="font-label-mono text-[10px] text-gray-500 tracking-wider uppercase">
@@ -337,14 +355,14 @@ export function WorkflowBuilderInner({ initialWorkflow }: { initialWorkflow?: an
         <div className="flex items-center gap-2">
           <button 
             onClick={validateWorkflow} 
-            className="px-3 py-1.5 rounded text-gray-300 text-xs font-semibold hover:bg-white/10 transition-colors border border-transparent hover:border-white/10 flex items-center gap-2"
+            className="px-3 py-1.5 rounded text-gray-300 text-xs font-semibold hover:bg-white/10 transition-colors border border-transparent hover:border-white/10 flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
           >
             <AlertCircle className="h-4 w-4" /> Validate
           </button>
           
           <button 
             onClick={handleSave} 
-            className="px-3 py-1.5 rounded text-gray-300 text-xs font-semibold hover:bg-white/10 transition-colors border border-transparent hover:border-white/10 flex items-center gap-2"
+            className="px-3 py-1.5 rounded text-gray-300 text-xs font-semibold hover:bg-white/10 transition-colors border border-transparent hover:border-white/10 flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
             title="Save (Ctrl+S)"
           >
             <Save className="h-4 w-4" /> Save
@@ -354,14 +372,14 @@ export function WorkflowBuilderInner({ initialWorkflow }: { initialWorkflow?: an
           
           <button 
             onClick={() => toast.success('Workflow Published successfully!')} 
-            className="px-3 py-1.5 rounded text-blue-400 text-xs font-semibold hover:bg-blue-500/10 transition-colors flex items-center gap-2"
+            className="px-3 py-1.5 rounded text-blue-400 text-xs font-semibold hover:bg-blue-500/10 transition-colors flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
           >
             <Globe className="h-4 w-4" /> Publish
           </button>
 
           <button 
             onClick={handleRun} 
-            className="ml-2 px-5 py-2 rounded bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-all flex items-center gap-2 shadow-lg shadow-blue-500/20 active:scale-95"
+            className="ml-2 px-5 py-2 rounded bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-all flex items-center gap-2 shadow-lg shadow-blue-500/20 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
           >
             <PlayCircle className="h-4 w-4" />
             RUN
@@ -374,7 +392,8 @@ export function WorkflowBuilderInner({ initialWorkflow }: { initialWorkflow?: an
         {!leftOpen && (
           <button 
             onClick={() => setLeftOpen(true)}
-            className="absolute left-4 top-4 z-40 p-2 bg-[#121212] border border-outline-variant rounded-md shadow-lg text-gray-400 hover:text-white"
+            aria-label="Toggle Node Library"
+            className="absolute left-4 top-4 z-40 p-2 bg-[#121212] border border-outline-variant rounded-md shadow-lg text-gray-400 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
           >
             <PanelLeft className="h-5 w-5" />
           </button>
@@ -383,41 +402,65 @@ export function WorkflowBuilderInner({ initialWorkflow }: { initialWorkflow?: an
         {/* Left Sidebar: Node Palette */}
         <aside 
           className={cn(
-            "flex flex-col h-full bg-[#0a0a0a] border-r border-outline-variant z-20 shrink-0 transition-all duration-300",
+            "flex flex-col h-full bg-[#0a0a0a]/95 backdrop-blur-xl border-r border-white/5 z-20 shrink-0 transition-all duration-300",
             leftOpen ? "w-[280px]" : "w-0 overflow-hidden border-none"
           )}
         >
-          <div className="flex items-center justify-between p-4 border-b border-outline-variant">
-            <span className="font-label-caps text-gray-400 text-[11px] uppercase tracking-widest font-bold">Node Palette</span>
-            <button onClick={() => setLeftOpen(false)} className="text-gray-500 hover:text-gray-300">
+          <div className="flex items-center justify-between p-4 border-b border-white/5">
+            <span className="font-label-caps text-gray-300 text-[10px] uppercase tracking-widest font-bold">Node Library</span>
+            <button onClick={() => setLeftOpen(false)} aria-label="Close Node Library" className="text-gray-500 hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded">
               <PanelLeftClose className="h-4 w-4" />
             </button>
           </div>
           
-          <nav className="flex flex-col h-full overflow-y-auto p-3 gap-6 custom-scrollbar">
-            {CATEGORIES.map(category => (
-              <div key={category.title} className="flex flex-col gap-2">
-                <span className="font-label-mono text-[10px] text-gray-500 tracking-wider uppercase px-2">{category.title}</span>
-                <div className="flex flex-col gap-1">
-                  {category.items.map((item) => {
-                    const Icon = item.icon;
-                    return (
-                      <div 
-                        key={item.type}
-                        onDragStart={(e) => onDragStart(e, item.type)}
-                        draggable
-                        className="flex items-center gap-3 px-3 py-2.5 bg-[#121212] hover:bg-[#18181b] border border-outline-variant/50 hover:border-outline-variant rounded-lg cursor-grab active:cursor-grabbing transition-all shadow-sm hover:shadow group"
-                      >
-                        <div className={cn("p-1.5 rounded-md bg-white/5", item.color)}>
-                          <Icon className="h-4 w-4" />
+          <div className="p-3 border-b border-white/5">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-gray-500" />
+              <input
+                type="text"
+                aria-label="Search nodes"
+                placeholder="Search nodes..."
+                value={librarySearch}
+                onChange={(e) => setLibrarySearch(e.target.value)}
+                className="w-full bg-[#121212] border border-white/10 rounded-md pl-8 pr-3 py-2 text-xs text-white focus-visible:outline-none focus-visible:border-blue-500/50 focus-visible:ring-2 focus-visible:ring-blue-500/50 transition-all"
+              />
+            </div>
+          </div>
+          
+          <nav className="flex flex-col h-full overflow-y-auto p-3 gap-5 custom-scrollbar">
+            {CATEGORIES.map(category => {
+              const filteredItems = category.items.filter(item => 
+                item.type.replace('_', ' ').toLowerCase().includes(librarySearch.toLowerCase())
+              );
+              
+              if (filteredItems.length === 0) return null;
+              
+              return (
+                <div key={category.title} className="flex flex-col gap-1.5">
+                  <span className="font-label-mono text-[9px] text-gray-500 tracking-widest uppercase px-2 mb-1">{category.title}</span>
+                  <div className="flex flex-col gap-0.5">
+                    {filteredItems.map((item) => {
+                      const Icon = item.icon;
+                      return (
+                        <div 
+                          key={item.type}
+                          onDragStart={(e) => onDragStart(e, item.type)}
+                          draggable
+                          tabIndex={0}
+                          aria-label={`Drag to add ${item.type.replace('_', ' ')} node`}
+                          className="flex items-center gap-3 px-2.5 py-2 hover:bg-white/5 rounded-md cursor-grab active:cursor-grabbing transition-colors group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                        >
+                          <div className={cn("p-1 rounded bg-[#121212] border border-white/10 group-hover:border-white/20", item.color)}>
+                            <Icon className="h-3.5 w-3.5" />
+                          </div>
+                          <span className="font-body-sm text-gray-400 group-hover:text-gray-200 text-xs transition-colors">{item.type.replace('_', ' ')}</span>
                         </div>
-                        <span className="font-body-sm text-gray-300 group-hover:text-white text-sm">{item.type.replace('_', ' ')}</span>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </nav>
         </aside>
 
@@ -433,17 +476,23 @@ export function WorkflowBuilderInner({ initialWorkflow }: { initialWorkflow?: an
               onNodesDelete={onNodesDelete}
               onSelectionChange={onSelectionChange}
               nodeTypes={nodeTypes}
+              edgeTypes={edgeTypes}
               defaultEdgeOptions={defaultEdgeOptions}
               selectionMode={'partial' as any}
               className="bg-[#050505]"
             >
-              <Background gap={24} color="#1f1f23" variant={BackgroundVariant.Lines} />
-              <Controls className="bg-[#121212] border border-outline-variant rounded-lg overflow-hidden shadow-xl" />
+              {/* Custom Animated Background */}
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_100%_100%_at_50%_0%,_rgba(59,130,246,0.05)_0%,_rgba(0,0,0,0)_100%)] pointer-events-none" />
+              <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.02] pointer-events-none mix-blend-overlay" />
+              
+              <Background gap={24} color="#18181b" variant={BackgroundVariant.Dots} size={1.5} />
+              
+              <Controls className="bg-[#121212]/80 backdrop-blur-md border border-white/10 rounded-lg overflow-hidden shadow-xl fill-gray-400" />
               <MiniMap 
                 nodeStrokeColor="#27272a"
                 nodeColor="#18181b"
-                maskColor="rgba(5, 5, 5, 0.8)"
-                className="border border-outline-variant rounded-lg shadow-2xl bg-[#0a0a0a]"
+                maskColor="rgba(5, 5, 5, 0.7)"
+                className="border border-white/10 rounded-lg shadow-2xl bg-[#0a0a0a]/80 backdrop-blur-md"
               />
             </ReactFlow>
           </div>
@@ -466,7 +515,7 @@ export function WorkflowBuilderInner({ initialWorkflow }: { initialWorkflow?: an
                     </div>
                   )}
                 </div>
-                <button onClick={() => setShowValidation(false)} className="p-1 rounded hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
+                <button onClick={() => setShowValidation(false)} aria-label="Close Validation Console" className="p-1 rounded hover:bg-white/10 text-gray-400 hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
                   <ChevronDown className="h-5 w-5" />
                 </button>
               </div>
@@ -476,7 +525,15 @@ export function WorkflowBuilderInner({ initialWorkflow }: { initialWorkflow?: an
                     {validationIssues.map((issue, idx) => (
                       <tr 
                         key={idx} 
-                        className="hover:bg-white/5 transition-colors group cursor-pointer"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            const match = nodes.find((n: any) => issue.includes(n.data.label as string));
+                            if (match) setSelectedNodeId(match.id);
+                          }
+                        }}
+                        className="hover:bg-white/5 transition-colors group cursor-pointer focus-visible:outline-none focus-visible:bg-white/10"
                         onClick={() => {
                            // Try to highlight node if issue mentions its label
                            const match = nodes.find((n: any) => issue.includes(n.data.label as string));
@@ -517,7 +574,8 @@ export function WorkflowBuilderInner({ initialWorkflow }: { initialWorkflow?: an
         {!rightOpen && (
           <button 
             onClick={() => setRightOpen(true)}
-            className="absolute right-4 top-4 z-40 p-2 bg-[#121212] border border-outline-variant rounded-md shadow-lg text-gray-400 hover:text-white"
+            aria-label="Toggle Node Inspector"
+            className="absolute right-4 top-4 z-40 p-2 bg-[#121212] border border-outline-variant rounded-md shadow-lg text-gray-400 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
           >
             <PanelRight className="h-5 w-5" />
           </button>
@@ -536,7 +594,7 @@ export function WorkflowBuilderInner({ initialWorkflow }: { initialWorkflow?: an
             <div className="h-full flex flex-col">
               <div className="flex items-center justify-between p-4 border-b border-outline-variant">
                 <span className="font-label-caps text-gray-400 text-[11px] uppercase tracking-widest font-bold">Node Inspector</span>
-                <button onClick={() => setRightOpen(false)} className="text-gray-500 hover:text-gray-300">
+                <button onClick={() => setRightOpen(false)} aria-label="Close Node Inspector" className="text-gray-500 hover:text-gray-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded">
                   <PanelRightClose className="h-4 w-4" />
                 </button>
               </div>
@@ -551,6 +609,7 @@ export function WorkflowBuilderInner({ initialWorkflow }: { initialWorkflow?: an
         </aside>
       </div>
     </div>
+    </>
   );
 }
 

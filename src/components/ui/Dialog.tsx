@@ -12,8 +12,8 @@ export function Dialog({ open, onOpenChange, children }: DialogProps) {
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="fixed inset-0" onClick={() => onOpenChange(false)} />
-      <div className="relative z-50 grid w-full max-w-lg gap-4 border bg-background p-6 shadow-lg sm:rounded-lg">
+      <div className="fixed inset-0" onClick={() => onOpenChange(false)} aria-hidden="true" />
+      <div className="relative z-50 grid w-full max-w-lg gap-4 border bg-background p-6 shadow-lg sm:rounded-lg" role="dialog" aria-modal="true">
         {children}
       </div>
     </div>

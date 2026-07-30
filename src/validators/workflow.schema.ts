@@ -28,6 +28,7 @@ export const WorkflowEdgeSchema = z.object({
 export const CreateWorkflowSchema = z.object({
   name: z.string().min(3).max(100),
   description: z.string().max(500).optional(),
+  createdBy: z.string().optional(),
   nodes: z.array(WorkflowNodeSchema).default([]),
   edges: z.array(WorkflowEdgeSchema).default([]),
 }).superRefine((data, ctx) => {
@@ -70,6 +71,7 @@ export const CreateWorkflowSchema = z.object({
 export const UpdateWorkflowSchema = z.object({
   name: z.string().min(3).max(100).optional(),
   description: z.string().max(500).optional(),
+  createdBy: z.string().optional(),
   nodes: z.array(WorkflowNodeSchema).optional(),
   edges: z.array(WorkflowEdgeSchema).optional(),
   status: z.nativeEnum(WorkflowStatus).optional(),

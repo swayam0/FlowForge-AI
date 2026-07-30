@@ -7,7 +7,7 @@ export class LoggingService {
     eventType: EventType,
     message: string,
     stepId?: string,
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ): Promise<void> {
     try {
       // We no longer save logs to StepExecutionModel to prevent corrupting the event sourcing reducer.

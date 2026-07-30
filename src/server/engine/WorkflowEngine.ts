@@ -4,7 +4,7 @@ import { LoggingService } from '../services/LoggingService';
 import { ExecutorFactory } from './ExecutorFactory';
 import { ExecutionContext } from '../interfaces/ExecutionContext';
 import { EventType, ExecutionStatus, WorkflowStepType } from '../../types/common';
-import { WorkflowNode, WorkflowVersion } from '../../types/workflow';
+import { WorkflowNode, WorkflowVersion, Workflow, WorkflowEdge } from '../../types/workflow';
 
 import { AIService } from '../ai/AIService';
 import { WorkflowRunModel } from '../../models/WorkflowRun';
@@ -25,7 +25,7 @@ export class WorkflowEngine {
     this.executorFactory = new ExecutorFactory(aiService);
   }
 
-  async startRun(workflowVersionId: string, input: Record<string, any>): Promise<string> {
+  async startRun(workflowVersionId: string, input: Record<string, unknown>): Promise<string> {
     const workflow = await this.getWorkflowVersionSnapshot(workflowVersionId);
     if (!workflow) {
       throw new Error('Workflow version not found');
@@ -51,20 +51,20 @@ export class WorkflowEngine {
       const workflowDoc = await WorkflowModel.findById(workflowVersionId).lean().exec();
       return workflowDoc ? workflowDoc : null;
     }
-    return versionDoc.snapshot as any;
+    return versionDoc.snapshot as unknown as Workflow;
   }
 
-  private validateWorkflow(workflow: any) {
+  private validateWorkflow(workflow: Workflow) {
     if (!workflow.nodes || workflow.nodes.length === 0) {
       throw new Error('Workflow must have at least one node');
     }
     
-    const startNodes = workflow.nodes.filter((n: any) => n.type === 'structured_input');
+    const startNodes = workflow.nodes.filter((n: WorkflowNode) => (n.type as string) === 'structured_input' || n.type === 'STRUCTURED_INPUT');
     if (startNodes.length === 0) {
       throw new Error('Workflow must have at least one structured_input start node');
     }
 
-    const nodeIds = new Set(workflow.nodes.map((n: any) => n.id));
+    const nodeIds = new Set(workflow.nodes.map((n: WorkflowNode) => n.id));
     for (const edge of workflow.edges || []) {
       if (!nodeIds.has(edge.source)) throw new Error(`Edge references invalid source node: ${edge.source}`);
       if (!nodeIds.has(edge.target)) throw new Error(`Edge references invalid target node: ${edge.target}`);
@@ -123,14 +123,14 @@ export class WorkflowEngine {
     // --- EVENT SOURCING REDUCER ---
     const stepExecutions = await StepExecutionModel.find({ runId }).sort({ startedAt: 1 }).lean().exec();
     
-    let previousOutputs: Record<string, any> = {};
+    let previousOutputs: Record<string, unknown> = {};
     let currentNodeId: string | undefined = undefined;
     let attemptMap: Record<string, number> = {};
 
     if (stepExecutions.length === 0) {
       // Find start node
-      const targetIds = new Set(workflow.edges.map((e: any) => e.target));
-      const startNode = workflow.nodes.find((n: any) => !targetIds.has(n.id));
+      const targetIds = new Set(workflow.edges.map((e: WorkflowEdge) => e.target));
+      const startNode = workflow.nodes.find((n: WorkflowNode) => !targetIds.has(n.id));
       if (!startNode) throw new Error('No starting node found');
       currentNodeId = startNode.id;
     } else {
@@ -146,16 +146,17 @@ export class WorkflowEngine {
         currentNodeId = lastStep.stepId;
       } else if (lastStep.status === ExecutionStatus.COMPLETED) {
         // Derive next node
-        const lastNode = workflow.nodes.find((n: any) => n.id === lastStep.stepId);
-        currentNodeId = this.findNextNode(workflow, lastNode, lastStep.output?.nextNodeId) || undefined;
+        const lastNode = workflow.nodes.find((n: WorkflowNode) => n.id === lastStep.stepId);
+        const lastStepOutput = lastStep.output as any;
+        currentNodeId = this.findNextNode(workflow, lastNode!, lastStepOutput?.nextNodeId) || undefined;
       }
     }
 
-    const runInput = run.toObject ? (run.toObject() as any).input : run.input;
+    const runInput = run.toObject ? ((run.toObject() as unknown as Record<string, unknown>).input as Record<string, unknown>) : (run.input as Record<string, unknown>);
 
     // --- EXECUTION LOOP ---
     while (currentNodeId) {
-      const node = workflow.nodes.find((n: any) => n.id === currentNodeId);
+      const node = workflow.nodes.find((n: WorkflowNode) => n.id === currentNodeId);
       if (!node) break;
 
       const attemptNumber = (attemptMap[currentNodeId] || 0) + 1;
@@ -186,10 +187,10 @@ export class WorkflowEngine {
 
   async executeNode(
     runId: string, 
-    workflow: any, 
+    workflow: Workflow, 
     node: WorkflowNode, 
-    previousOutputs: Record<string, any>, 
-    input: Record<string, any>,
+    previousOutputs: Record<string, unknown>, 
+    input: Record<string, unknown>,
     attemptNumber: number
   ): Promise<string | null> {
     
@@ -228,7 +229,7 @@ export class WorkflowEngine {
     const context: ExecutionContext = {
       executionId: runId, // Keep for backward compat with some executors temporarily
       workflow,
-      workflowVersion: { id: '', workflowId: workflow._id, versionNumber: workflow.version, snapshot: workflow, createdAt: new Date() },
+      workflowVersion: { id: '', workflowId: workflow.id, versionNumber: workflow.version, snapshot: workflow, createdAt: new Date() },
       currentNode: node,
       input,
       previousOutputs,
@@ -238,6 +239,13 @@ export class WorkflowEngine {
     };
 
     try {
+      if (node.permissions && Array.isArray(node.permissions) && node.permissions.length > 0) {
+        const callerRole = String(input._callerRole || 'USER');
+        if (!node.permissions.includes(callerRole)) {
+          throw new Error(`Permission denied: node requires one of [${node.permissions.join(', ')}], caller has [${callerRole}]`);
+        }
+      }
+
       const executor = this.executorFactory.getExecutor(node.type);
       const result = await executor.execute(context);
 
@@ -263,7 +271,7 @@ export class WorkflowEngine {
         });
       }
 
-      const finalOutput = { ...result.output, nextNodeId: result.nextNodeId };
+      const finalOutput = { ...(typeof result.output === 'object' && result.output !== null ? result.output : { value: result.output }), nextNodeId: result.nextNodeId };
       previousOutputs[node.id] = finalOutput;
 
       await StepExecutionModel.findByIdAndUpdate(stepExecution._id, {
@@ -292,12 +300,12 @@ export class WorkflowEngine {
     }
   }
 
-  findNextNode(workflow: any, currentNode: WorkflowNode, dynamicNextNodeId?: string): string | null {
+  findNextNode(workflow: Workflow, currentNode: WorkflowNode, dynamicNextNodeId?: string): string | null {
     if (dynamicNextNodeId) {
       return dynamicNextNodeId;
     }
 
-    const edges = workflow.edges.filter((e: any) => e.source === currentNode.id);
+    const edges = workflow.edges.filter((e: WorkflowEdge) => e.source === currentNode.id);
     if (edges.length === 0) return null;
     if (edges.length === 1) return edges[0].target;
 

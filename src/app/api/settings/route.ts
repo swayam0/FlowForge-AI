@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { SettingsRepository } from '@/repositories/SettingsRepository';
 import { encryptionHelper } from '@/server/helpers/encryptionHelper';
 import { successResponse, errorResponse } from '../responseHelper';
+import { UpdateSettingsSchema } from '@/validators/api.schema';
 
 const settingsRepo = new SettingsRepository();
 
@@ -30,16 +31,9 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { provider, key } = body;
-
-    if (!provider || !['gemini'].includes(provider)) {
-      return errorResponse('Invalid provider', undefined, 400);
-    }
-
-    if (!key || typeof key !== 'string' || key.trim() === '') {
-      return errorResponse('API key is required', undefined, 400);
-    }
+    const body = await request.json().catch(() => ({}));
+    const parsedBody = UpdateSettingsSchema.parse(body);
+    const { provider, key } = parsedBody;
 
     const dbKey = 'geminiApiKey';
     await settingsRepo.setSetting(dbKey, key.trim());

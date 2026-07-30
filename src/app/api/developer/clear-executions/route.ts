@@ -5,11 +5,15 @@ import { WorkflowRunModel } from '../../../../models/WorkflowRun';
 import { StepExecutionModel } from '../../../../models/StepExecution';
 import { ApprovalModel } from '../../../../models/Approval';
 import { successResponse, errorResponse } from '../../responseHelper';
+import { EmptyBodySchema } from '../../../../validators/api.schema';
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
     await connectToDatabase();
     
+    const body = await request.json().catch(() => ({}));
+    EmptyBodySchema.parse(body);
+
     await WorkflowRunModel.deleteMany({});
     await StepExecutionModel.deleteMany({});
     await ApprovalModel.deleteMany({});

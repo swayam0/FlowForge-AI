@@ -15,7 +15,7 @@ export class ConditionExecutor implements WorkflowStepExecutor {
       };
     }
 
-    const { field, operator, value } = config as { field: string; operator: ConditionOperator; value: any };
+    const { field, operator, value } = config as { field: string; operator: ConditionOperator; value: unknown };
     
     // Evaluate based on previous outputs
     const actualValue = getValueFromOutputs(context.previousOutputs, field);

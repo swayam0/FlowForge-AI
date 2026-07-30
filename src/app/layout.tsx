@@ -4,7 +4,7 @@ import { Inter } from 'next/font/google';
 import { QueryProvider } from '../components/providers/QueryProvider';
 import { Toaster } from 'sonner';
 
-import { AppLayout } from '../components/layout/AppLayout';
+
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -22,9 +22,7 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <body className={inter.className}>
         <QueryProvider>
-          <AppLayout>
-            {children}
-          </AppLayout>
+          {children}
           <Toaster theme="dark" position="bottom-right" />
         </QueryProvider>
       </body>

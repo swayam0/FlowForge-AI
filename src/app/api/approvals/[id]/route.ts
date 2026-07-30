@@ -24,7 +24,7 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
     const approval = await ApprovalModel.findById(params.id);
     if (!approval) return errorResponse('Approval not found', null, 404);
 
-    const body = await request.json();
+    const body = await request.json().catch(() => ({}));
     const parsedData = SubmitApprovalSchema.parse(body);
 
     approval.status = parsedData.status;

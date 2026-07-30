@@ -1,6 +1,6 @@
 export type ConditionOperator = 'equals' | 'notEquals' | 'greaterThan' | 'lessThan' | 'contains';
 
-export function evaluateCondition(actualValue: any, operator: ConditionOperator, expectedValue: any): boolean {
+export function evaluateCondition(actualValue: unknown, operator: ConditionOperator, expectedValue: unknown): boolean {
   switch (operator) {
     case 'equals':
       return actualValue === expectedValue;
@@ -11,7 +11,10 @@ export function evaluateCondition(actualValue: any, operator: ConditionOperator,
     case 'lessThan':
       return Number(actualValue) < Number(expectedValue);
     case 'contains':
-      if (Array.isArray(actualValue) || typeof actualValue === 'string') {
+      if (Array.isArray(actualValue)) {
+        return actualValue.includes(expectedValue);
+      }
+      if (typeof actualValue === 'string' && typeof expectedValue === 'string') {
         return actualValue.includes(expectedValue);
       }
       return false;
@@ -20,15 +23,15 @@ export function evaluateCondition(actualValue: any, operator: ConditionOperator,
   }
 }
 
-export function getValueFromOutputs(outputs: Record<string, any>, path: string): any {
+export function getValueFromOutputs(outputs: Record<string, unknown>, path: string): unknown {
   // Path could be "nodeId.field.subfield"
   const keys = path.split('.');
-  let current = outputs;
+  let current: unknown = outputs;
   for (const key of keys) {
     if (current === null || current === undefined) {
       return undefined;
     }
-    current = current[key];
+    current = typeof current === 'object' && current !== null ? (current as Record<string, unknown>)[key] : undefined;
   }
   return current;
 }

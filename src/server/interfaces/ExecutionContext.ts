@@ -5,9 +5,9 @@ export interface ExecutionContext {
   workflow: Workflow;
   workflowVersion: WorkflowVersion;
   currentNode: WorkflowNode;
-  input: Record<string, any>;
-  previousOutputs: Record<string, any>;
+  input: Record<string, unknown>;
+  previousOutputs: Record<string, unknown>;
   executionPath: string[];
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
   retryCount: number;
 }

@@ -38,11 +38,11 @@ export async function seedDatabase() {
       // Generate 6-8 nodes
       const nodes = [
         { id: 'node-1', type: WorkflowStepType.STRUCTURED_INPUT, label: 'Trigger Input', position: { x: 100, y: 150 }, configuration: {} },
-        { id: 'node-2', type: WorkflowStepType.AI_CLASSIFICATION, label: 'Categorize', position: { x: 300, y: 150 }, configuration: {} },
-        { id: 'node-3', type: WorkflowStepType.AI_EXTRACTION, label: 'Extract Entities', position: { x: 500, y: 150 }, configuration: { prompt: 'Extract fields' } },
-        { id: 'node-4', type: WorkflowStepType.DETERMINISTIC_CONDITION, label: 'Evaluate Rules', position: { x: 700, y: 150 }, configuration: {} },
-        { id: 'node-5', type: WorkflowStepType.HUMAN_APPROVAL, label: 'Manager Review', position: { x: 900, y: 50 }, configuration: {} },
-        { id: 'node-6', type: WorkflowStepType.MOCK_EXTERNAL_ACTION, label: 'Send Alert', position: { x: 900, y: 250 }, configuration: {} },
+        { id: 'node-2', type: WorkflowStepType.AI_CLASSIFICATION, label: 'Categorize', position: { x: 300, y: 150 }, configuration: { provider: 'Google', model: 'gemini-3.5-flash', prompt: 'Categorize the support request.' } },
+        { id: 'node-3', type: WorkflowStepType.AI_EXTRACTION, label: 'Extract Entities', position: { x: 500, y: 150 }, configuration: { provider: 'Google', model: 'gemini-3.5-flash', prompt: 'Extract key customer details.' } },
+        { id: 'node-4', type: WorkflowStepType.DETERMINISTIC_CONDITION, label: 'Evaluate Rules', position: { x: 700, y: 150 }, configuration: { expression: 'input.urgency === "HIGH"' } },
+        { id: 'node-5', type: WorkflowStepType.HUMAN_APPROVAL, label: 'Manager Review', position: { x: 900, y: 50 }, configuration: { reviewer: 'Manager', permissions: ['Admin'] } },
+        { id: 'node-6', type: WorkflowStepType.MOCK_EXTERNAL_ACTION, label: 'Send Alert', position: { x: 900, y: 250 }, configuration: { endpoint: 'https://api.acme.com/alerts', retryPolicy: { maxRetries: 3, delayMs: 1000 } } },
         { id: 'node-7', type: WorkflowStepType.FINAL_REPORT, label: 'Compile Report', position: { x: 1100, y: 150 }, configuration: {} }
       ];
 

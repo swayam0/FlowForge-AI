@@ -15,6 +15,8 @@ interface ValidationPanelProps {
   isValidating: boolean;
   onClose: () => void;
   onFocusNode: (nodeId: string) => void;
+  bypassValidation?: boolean;
+  onBypassChange?: (val: boolean) => void;
 }
 
 const categoryConfig: Record<ValidationCategory, { icon: React.ElementType; label: string }> = {
@@ -176,7 +178,14 @@ function CategorySection({
   );
 }
 
-export function ValidationPanel({ result, isValidating, onClose, onFocusNode }: ValidationPanelProps) {
+export function ValidationPanel({ 
+  result, 
+  isValidating, 
+  onClose, 
+  onFocusNode,
+  bypassValidation = false,
+  onBypassChange
+}: ValidationPanelProps) {
   const categories = Object.keys(categoryConfig) as ValidationCategory[];
   const errorCount = result.issues.filter(i => i.severity === 'ERROR').length;
   const warnCount = result.issues.filter(i => i.severity === 'WARNING').length;
@@ -193,9 +202,23 @@ export function ValidationPanel({ result, isValidating, onClose, onFocusNode }: 
       <div className="flex items-center justify-between p-4 border-b border-white/5 bg-[#050505] shrink-0">
         <div>
           <h2 className="text-sm font-bold text-gray-100 tracking-tight">Workflow Validation</h2>
-          <p className="text-[10px] font-mono uppercase tracking-widest text-gray-500 mt-0.5">
-            {isValidating ? 'Validating...' : result.isValid ? 'Workflow Ready ✓' : `${errorCount} Error${errorCount !== 1 ? 's' : ''}, ${warnCount} Warning${warnCount !== 1 ? 's' : ''}`}
-          </p>
+          <div className="flex items-center gap-3 mt-1.5">
+            <p className="text-[10px] font-mono uppercase tracking-widest text-gray-500">
+              {isValidating ? 'Validating...' : result.isValid ? 'Workflow Ready ✓' : `${errorCount} Error${errorCount !== 1 ? 's' : ''}`}
+            </p>
+            {onBypassChange && (
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  checked={bypassValidation}
+                  onChange={(e) => onBypassChange(e.target.checked)}
+                />
+                <div className="w-7 h-4 bg-gray-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-gray-400 after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-blue-600 peer-checked:after:bg-white"></div>
+                <span className="ml-1.5 text-[9px] font-bold text-blue-400 uppercase tracking-wider select-none">Demo Mode</span>
+              </label>
+            )}
+          </div>
         </div>
         <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
           <X className="h-4 w-4" />

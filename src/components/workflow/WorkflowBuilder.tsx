@@ -99,6 +99,7 @@ export function WorkflowBuilderInner({ initialWorkflow }: { initialWorkflow?: an
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [name, setName] = useState(initialWorkflow?.name || 'New Workflow');
   const [description, setDescription] = useState(initialWorkflow?.description || '');
+  const [bypassValidation, setBypassValidation] = useState(false);
   
   const { result: validationResult, isValidating, panelOpen, setPanelOpen, forceValidate } = useValidation();
   
@@ -116,12 +117,35 @@ export function WorkflowBuilderInner({ initialWorkflow }: { initialWorkflow?: an
         return {
           id: sn.id,
           type: 'customNode',
-          position: existing ? existing.position : { x: 250, y: 150 },
-          data: { label: (sn as any).label || (sn as any).name, type: sn.type, configuration: sn.configuration },
+          position: sn.position || existing?.position || { x: 100, y: 100 },
+          data: {
+            name: sn.label || (sn as any).name,
+            type: sn.type,
+            configuration: sn.configuration,
+            permissions: (sn as any).permissions
+          }
         };
       }));
     }
-  }, [storeNodes]); // Intentionally omitting nodes to prevent loops
+  }, [storeNodes, setNodes, nodes.length]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setBypassValidation(localStorage.getItem('bypass_validation') === 'true');
+    }
+  }, []);
+
+  const handleBypassChange = (val: boolean) => {
+    setBypassValidation(val);
+    localStorage.setItem('bypass_validation', val ? 'true' : 'false');
+    toast.success(val ? 'Demo Mode Enabled: Validation bypassed' : 'Demo Mode Disabled');
+  };
+
+  const validateWorkflow = () => {
+    const res = forceValidate();
+    setPanelOpen(true);
+    return bypassValidation || res.isValid;
+  };
 
   // Initialize
   useEffect(() => {
@@ -145,12 +169,6 @@ export function WorkflowBuilderInner({ initialWorkflow }: { initialWorkflow?: an
       setStoreNodes(initialWorkflow.nodes);
     }
   }, [initialWorkflow, setNodes, setEdges, setStoreNodes]);
-
-  const validateWorkflow = () => {
-    const res = forceValidate();
-    setPanelOpen(true);
-    return res.isValid;
-  };
 
   const handleSave = async () => {
     if (!validateWorkflow()) return;
@@ -369,7 +387,7 @@ export function WorkflowBuilderInner({ initialWorkflow }: { initialWorkflow?: an
           <button 
             onClick={() => {
               const res = forceValidate();
-              if (!res.isValid) {
+              if (!res.isValid && !bypassValidation) {
                 setPanelOpen(true);
                 toast.error('Cannot publish. Fix all errors first.');
               } else {
@@ -384,7 +402,7 @@ export function WorkflowBuilderInner({ initialWorkflow }: { initialWorkflow?: an
           <button 
             onClick={() => {
               const res = forceValidate();
-              if (!res.isValid) {
+              if (!res.isValid && !bypassValidation) {
                 setPanelOpen(true);
                 toast.error('Cannot run. Fix all errors first.');
                 return;
@@ -549,7 +567,6 @@ export function WorkflowBuilderInner({ initialWorkflow }: { initialWorkflow?: an
           )}
         </aside>
 
-        {/* Validation Panel (right side, full height) */}
         <AnimatePresence>
           {panelOpen && (
             <ValidationPanel
@@ -564,6 +581,8 @@ export function WorkflowBuilderInner({ initialWorkflow }: { initialWorkflow?: an
                   setSelectedNodeId(nodeId);
                 }
               }}
+              bypassValidation={bypassValidation}
+              onBypassChange={handleBypassChange}
             />
           )}
         </AnimatePresence>

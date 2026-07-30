@@ -5,6 +5,8 @@ import connectToDatabase from '../../../../utils/db';
 import { WorkflowRepository } from '../../../../repositories/WorkflowRepository';
 import mongoose from 'mongoose';
 import { UpdateWorkflowSchema } from '../../../../validators/workflow.schema';
+import { logAuditEvent } from '../../../../server/AuditService';
+import { AuditEventType } from '../../../../types/auditLog';
 
 const workflowRepo = new WorkflowRepository();
 
@@ -39,6 +41,9 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
     const body = await request.json().catch(() => ({}));
     const parsedBody = UpdateWorkflowSchema.parse(body);
     
+    const existingWorkflow = await workflowRepo.getById(params.id);
+    const oldStatus = existingWorkflow?.status;
+
     const workflow = await workflowRepo.update(params.id, parsedBody);
     
     if (!workflow) {
@@ -46,7 +51,25 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
       return errorResponse('Workflow not found', null, 404);
     }
 
-    return successResponse(workflow.toJSON(), 'Workflow updated successfully');
+    const updatedJson = workflow.toJSON();
+    const eventType = updatedJson.status === 'PUBLISHED' && oldStatus !== 'PUBLISHED'
+      ? AuditEventType.WORKFLOW_PUBLISHED
+      : updatedJson.status === 'ARCHIVED'
+      ? AuditEventType.WORKFLOW_ARCHIVED
+      : AuditEventType.WORKFLOW_UPDATED;
+
+    logAuditEvent({
+      eventType,
+      resourceType: 'WORKFLOW',
+      resourceId: params.id,
+      workflowId: params.id,
+      actor: 'system',
+      summary: `Workflow "${updatedJson.name}" ${eventType.toLowerCase().replace('workflow_', '')}`,
+      oldValue: oldStatus ? { status: oldStatus } : undefined,
+      newValue: { status: updatedJson.status },
+    });
+
+    return successResponse(updatedJson, 'Workflow updated successfully');
   } catch (error) {
     console.error(`[API PUT /workflows/:id] Error updating workflow ID: ${params.id}`, error);
     return errorResponse('Unable to save workflow updates', error, 400);
@@ -60,6 +83,15 @@ export async function DELETE(request: Request, props: { params: Promise<{ id: st
     
     const success = await workflowRepo.delete(params.id);
     if (!success) return errorResponse('Workflow not found', null, 404);
+
+    logAuditEvent({
+      eventType: AuditEventType.WORKFLOW_DELETED,
+      resourceType: 'WORKFLOW',
+      resourceId: params.id,
+      workflowId: params.id,
+      actor: 'system',
+      summary: `Workflow deleted`,
+    });
 
     return successResponse(null, 'Workflow deleted successfully');
   } catch (error) {

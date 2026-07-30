@@ -26,12 +26,15 @@ import { WorkflowStepType } from '../../types/common';
 import { api } from '../../lib/api';
 import { useRouter } from 'next/navigation';
 import { 
-  Network, Play, ChevronDown, CheckCircle, AlertCircle, 
+  Network, Play, ChevronDown, CheckCircle, AlertCircle, ShieldCheck,
   Terminal, Search, FileText, Database, UserCheck, PlaySquare, FileCheck,
-  PanelLeftClose, PanelRightClose, PanelLeft, PanelRight, Save, PlayCircle, Share, Globe, Settings, Monitor
+  PanelLeftClose, PanelRightClose, PanelLeft, PanelRight, Save, PlayCircle, Globe, Settings, Monitor
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { toast } from 'sonner';
+import { AnimatePresence } from 'framer-motion';
+import { useValidation } from './validation/useValidation';
+import { ValidationPanel } from './validation/ValidationPanel';
 
 const nodeTypes = {
   customNode: BaseNode,
@@ -97,8 +100,7 @@ export function WorkflowBuilderInner({ initialWorkflow }: { initialWorkflow?: an
   const [name, setName] = useState(initialWorkflow?.name || 'New Workflow');
   const [description, setDescription] = useState(initialWorkflow?.description || '');
   
-  const [showValidation, setShowValidation] = useState(false);
-  const [validationIssues, setValidationIssues] = useState<string[]>([]);
+  const { result: validationResult, isValidating, panelOpen, setPanelOpen, forceValidate } = useValidation();
   
   const [leftOpen, setLeftOpen] = useState(true);
   const [rightOpen, setRightOpen] = useState(true);
@@ -145,24 +147,9 @@ export function WorkflowBuilderInner({ initialWorkflow }: { initialWorkflow?: an
   }, [initialWorkflow, setNodes, setEdges, setStoreNodes]);
 
   const validateWorkflow = () => {
-    const issues = [];
-    if (nodes.length === 0) issues.push('Workflow must contain at least one node');
-    if (!name) issues.push('Workflow must have a name');
-    
-    // Check specific nodes
-    const hasApproval = nodes.some(n => n.data.type === WorkflowStepType.HUMAN_APPROVAL);
-    if (!hasApproval && nodes.length > 3) issues.push('Warning: Missing approval branch for complex workflow');
-    
-    nodes.forEach((n: any) => {
-      if ((n.data.type === WorkflowStepType.AI_EXTRACTION || n.data.type === WorkflowStepType.AI_CLASSIFICATION) && 
-          (!n.data.configuration || !n.data.configuration.prompt)) {
-        issues.push(`AI node "${n.data.label}" missing prompt configuration`);
-      }
-    });
-
-    setValidationIssues(issues);
-    setShowValidation(true);
-    return issues.length === 0;
+    const res = forceValidate();
+    setPanelOpen(true);
+    return res.isValid;
   };
 
   const handleSave = async () => {
@@ -353,13 +340,22 @@ export function WorkflowBuilderInner({ initialWorkflow }: { initialWorkflow?: an
         </div>
         
         <div className="flex items-center gap-2">
-          <button 
-            onClick={validateWorkflow} 
-            className="px-3 py-1.5 rounded text-gray-300 text-xs font-semibold hover:bg-white/10 transition-colors border border-transparent hover:border-white/10 flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+          {/* Validation Score Badge */}
+          <button
+            onClick={() => { validateWorkflow(); setPanelOpen(true); }}
+            className={cn(
+              'px-3 py-1.5 rounded-md flex items-center gap-2 text-xs font-semibold transition-all border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500',
+              isValidating
+                ? 'text-gray-400 border-white/10 bg-white/5 animate-pulse'
+                : validationResult.isValid
+                ? 'text-green-400 border-green-500/20 bg-green-500/5 hover:bg-green-500/10'
+                : 'text-red-400 border-red-500/20 bg-red-500/5 hover:bg-red-500/10'
+            )}
           >
-            <AlertCircle className="h-4 w-4" /> Validate
+            <ShieldCheck className="h-4 w-4" />
+            {isValidating ? 'Validating...' : `${validationResult.score}/100`}
           </button>
-          
+
           <button 
             onClick={handleSave} 
             className="px-3 py-1.5 rounded text-gray-300 text-xs font-semibold hover:bg-white/10 transition-colors border border-transparent hover:border-white/10 flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
@@ -371,14 +367,30 @@ export function WorkflowBuilderInner({ initialWorkflow }: { initialWorkflow?: an
           <div className="w-px h-5 bg-outline-variant mx-1" />
           
           <button 
-            onClick={() => toast.success('Workflow Published successfully!')} 
-            className="px-3 py-1.5 rounded text-blue-400 text-xs font-semibold hover:bg-blue-500/10 transition-colors flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            onClick={() => {
+              const res = forceValidate();
+              if (!res.isValid) {
+                setPanelOpen(true);
+                toast.error('Cannot publish. Fix all errors first.');
+              } else {
+                toast.success('Workflow Published successfully!');
+              }
+            }} 
+            className="px-3 py-1.5 rounded text-blue-400 text-xs font-semibold hover:bg-blue-500/10 transition-colors flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:opacity-40"
           >
             <Globe className="h-4 w-4" /> Publish
           </button>
 
           <button 
-            onClick={handleRun} 
+            onClick={() => {
+              const res = forceValidate();
+              if (!res.isValid) {
+                setPanelOpen(true);
+                toast.error('Cannot run. Fix all errors first.');
+                return;
+              }
+              handleRun();
+            }} 
             className="ml-2 px-5 py-2 rounded bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-all flex items-center gap-2 shadow-lg shadow-blue-500/20 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
           >
             <PlayCircle className="h-4 w-4" />
@@ -497,77 +509,6 @@ export function WorkflowBuilderInner({ initialWorkflow }: { initialWorkflow?: an
             </ReactFlow>
           </div>
 
-          {/* Validation Console Bottom Panel */}
-          {showValidation && (
-            <section className="absolute bottom-0 left-0 right-0 h-48 border-t border-outline-variant bg-[#0a0a0a] flex flex-col z-30 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] animate-in slide-in-from-bottom duration-300">
-              <div className="flex items-center justify-between px-4 py-2 border-b border-outline-variant bg-[#121212]">
-                <div className="flex items-center gap-4">
-                  <span className="font-label-caps text-xs tracking-wider uppercase font-bold text-gray-400">Validation Console</span>
-                  {validationIssues.length > 0 ? (
-                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-red-500/10 border border-red-500/20">
-                      <AlertCircle className="h-3.5 w-3.5 text-red-400" />
-                      <span className="text-[10px] font-label-mono text-red-400">{validationIssues.length} Issues</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-500/10 border border-green-500/20">
-                      <CheckCircle className="h-3.5 w-3.5 text-green-400" />
-                      <span className="text-[10px] font-label-mono text-green-400">All Checks Passed</span>
-                    </div>
-                  )}
-                </div>
-                <button onClick={() => setShowValidation(false)} aria-label="Close Validation Console" className="p-1 rounded hover:bg-white/10 text-gray-400 hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
-                  <ChevronDown className="h-5 w-5" />
-                </button>
-              </div>
-              <div className="flex-1 overflow-y-auto p-2 custom-scrollbar">
-                <table className="w-full text-left">
-                  <tbody className="divide-y divide-outline-variant/50">
-                    {validationIssues.map((issue, idx) => (
-                      <tr 
-                        key={idx} 
-                        tabIndex={0}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            const match = nodes.find((n: any) => issue.includes(n.data.label as string));
-                            if (match) setSelectedNodeId(match.id);
-                          }
-                        }}
-                        className="hover:bg-white/5 transition-colors group cursor-pointer focus-visible:outline-none focus-visible:bg-white/10"
-                        onClick={() => {
-                           // Try to highlight node if issue mentions its label
-                           const match = nodes.find((n: any) => issue.includes(n.data.label as string));
-                           if (match) setSelectedNodeId(match.id);
-                        }}
-                      >
-                        <td className="py-3 px-4 align-top w-10">
-                          {issue.includes('Warning') ? (
-                            <AlertCircle className="h-5 w-5 text-yellow-400" />
-                          ) : (
-                            <AlertCircle className="h-5 w-5 text-red-400" />
-                          )}
-                        </td>
-                        <td className="py-3 px-4">
-                          <p className="font-body-sm text-gray-200 leading-tight">{issue}</p>
-                          <p className="text-[11px] text-gray-500 font-label-mono mt-1 uppercase">
-                            {issue.includes('Warning') ? 'Structural Warning' : 'Configuration Error'}
-                          </p>
-                        </td>
-                      </tr>
-                    ))}
-                    {validationIssues.length === 0 && (
-                      <tr>
-                        <td colSpan={2} className="py-8 text-center text-gray-500">
-                          <CheckCircle className="h-8 w-8 text-green-500/50 mx-auto mb-3" />
-                          <span className="font-body-sm text-gray-400">Your workflow is valid and ready to run.</span>
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-          )}
         </main>
 
         {/* Right Sidebar Toggle Button (if closed) */}
@@ -585,7 +526,7 @@ export function WorkflowBuilderInner({ initialWorkflow }: { initialWorkflow?: an
         <aside 
           className={cn(
             "h-full bg-[#0a0a0a] border-l border-outline-variant z-20 shrink-0 transition-all duration-300",
-            rightOpen ? "w-[360px]" : "w-0 overflow-hidden border-none"
+            rightOpen && !panelOpen ? "w-[360px]" : "w-0 overflow-hidden border-none"
           )}
         >
           {selectedNodeId ? (
@@ -607,6 +548,25 @@ export function WorkflowBuilderInner({ initialWorkflow }: { initialWorkflow?: an
             </div>
           )}
         </aside>
+
+        {/* Validation Panel (right side, full height) */}
+        <AnimatePresence>
+          {panelOpen && (
+            <ValidationPanel
+              result={validationResult}
+              isValidating={isValidating}
+              onClose={() => setPanelOpen(false)}
+              onFocusNode={(nodeId) => {
+                setSelectedNodeId(nodeId);
+                const node = nodes.find(n => n.id === nodeId);
+                if (node) {
+                  // Highlight by selecting it
+                  setSelectedNodeId(nodeId);
+                }
+              }}
+            />
+          )}
+        </AnimatePresence>
       </div>
     </div>
     </>

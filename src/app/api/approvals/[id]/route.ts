@@ -9,6 +9,8 @@ import { WorkflowRunRepository } from '../../../../repositories/WorkflowRunRepos
 import { LoggingService } from '../../../../server/services/LoggingService';
 import { WorkflowEngine } from '../../../../server/engine/WorkflowEngine';
 import { EventType } from '../../../../types/common';
+import { logAuditEvent } from '../../../../server/AuditService';
+import { AuditEventType } from '../../../../types/auditLog';
 
 const workflowRepo = new WorkflowRepository();
 const runRepo = new WorkflowRunRepository();
@@ -44,6 +46,16 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
 
     // Auto-resume the engine now that approval is provided
     await engine.resumeRun(approval.executionId);
+
+    logAuditEvent({
+      eventType: parsedData.status === 'APPROVED' ? AuditEventType.APPROVAL_APPROVED : AuditEventType.APPROVAL_REJECTED,
+      resourceType: 'APPROVAL',
+      resourceId: params.id,
+      runId: approval.executionId,
+      actor: parsedData.reviewer,
+      summary: `Approval ${parsedData.status.toLowerCase()} by ${parsedData.reviewer}`,
+      metadata: { comments: parsedData.comments, nodeId: approval.nodeId },
+    });
 
     return successResponse(approval.toJSON(), `Approval ${parsedData.status} successfully`);
   } catch (error) {

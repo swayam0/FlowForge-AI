@@ -4,6 +4,8 @@ import { successResponse, errorResponse } from '../responseHelper';
 import connectToDatabase from '../../../utils/db';
 import { WorkflowRepository } from '../../../repositories/WorkflowRepository';
 import { CreateWorkflowSchema } from '../../../validators/workflow.schema';
+import { logAuditEvent } from '../../../server/AuditService';
+import { AuditEventType } from '../../../types/auditLog';
 
 // Since we are in app router, we can instantiate the repo here or use dependency injection pattern 
 const workflowRepo = new WorkflowRepository();
@@ -37,6 +39,17 @@ export async function POST(request: Request) {
     const workflow = await workflowRepo.create(parsedBody, createdBy);
     
     const workflowJson = workflow.toJSON();
+
+    // Fire-and-forget audit log
+    logAuditEvent({
+      eventType: AuditEventType.WORKFLOW_CREATED,
+      resourceType: 'WORKFLOW',
+      resourceId: String(workflowJson.id),
+      workflowId: String(workflowJson.id),
+      actor: createdBy,
+      summary: `Workflow "${workflowJson.name}" created`,
+      newValue: { name: workflowJson.name, status: workflowJson.status },
+    });
     
     return successResponse(workflowJson, 'Workflow created successfully', 201);
   } catch (error: any) {

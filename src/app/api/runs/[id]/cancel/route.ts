@@ -7,6 +7,8 @@ import { WorkflowRunRepository } from '../../../../../repositories/WorkflowRunRe
 import { LoggingService } from '../../../../../server/services/LoggingService';
 import { WorkflowEngine } from '../../../../../server/engine/WorkflowEngine';
 import { EmptyBodySchema } from '../../../../../validators/api.schema';
+import { logAuditEvent } from '../../../../../server/AuditService';
+import { AuditEventType } from '../../../../../types/auditLog';
 
 const workflowRepo = new WorkflowRepository();
 const runRepo = new WorkflowRunRepository();
@@ -22,6 +24,15 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
     EmptyBodySchema.parse(body);
     
     await engine.cancelRun(params.id);
+
+    logAuditEvent({
+      eventType: AuditEventType.EXECUTION_CANCELLED,
+      resourceType: 'EXECUTION',
+      resourceId: params.id,
+      runId: params.id,
+      actor: 'system',
+      summary: `Execution cancelled`,
+    });
     
     return successResponse(null, 'Run cancelled');
   } catch (error) {

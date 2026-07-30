@@ -15,6 +15,10 @@ import { StatusBadge } from '../ui/StatusBadge';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Execution, ExecutionLog, WorkflowNode } from '../../types';
+import { useInspectorStore } from '../../lib/store';
+import { useReplayStore } from '../../lib/replayStore';
+import { NodeInspector } from './NodeInspector';
+import { ReplayMode } from './replay/ReplayMode';
 
 export function ExecutionMonitor({ workflowId, executionId }: { workflowId: string, executionId?: string }) {
   const { data: history } = useQuery({
@@ -47,6 +51,7 @@ export function ExecutionMonitor({ workflowId, executionId }: { workflowId: stri
     enabled: !!activeExecution?.id,
   });
 
+  const inspectorStore = useInspectorStore();
   const [expandedStep, setExpandedStep] = useState<string | null>(null);
 
   const stepDurations = useMemo(() => {
@@ -138,6 +143,14 @@ export function ExecutionMonitor({ workflowId, executionId }: { workflowId: stri
           <div className="h-4 w-px bg-white/10 mx-2" />
 
           <div className="flex gap-2">
+            {(isSuccess || isFailed) && (
+              <button 
+                onClick={() => useReplayStore.getState().open(activeExecution.durationMs || 10000)}
+                className="px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-500 text-white transition-all text-sm font-bold flex items-center gap-2 shadow-lg shadow-blue-500/20 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 mr-2"
+              >
+                <Play className="h-4 w-4" /> Replay Execution
+              </button>
+            )}
             {isRunning && (
               <button className="px-4 py-2 rounded-md bg-white/5 hover:bg-white/10 text-white transition-colors text-sm font-medium flex items-center gap-2 border border-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
                 <Pause className="h-4 w-4" /> Pause
@@ -218,17 +231,18 @@ export function ExecutionMonitor({ workflowId, executionId }: { workflowId: stri
                   {/* Card */}
                   <div className={cn(
                     "flex-1 rounded-xl border bg-[#0a0a0a] transition-all overflow-hidden",
-                    status === 'running' ? "border-blue-500/30 shadow-[0_0_30px_rgba(59,130,246,0.1)]" : "border-white/5"
+                    status === 'running' ? "border-blue-500/30 shadow-[0_0_30px_rgba(59,130,246,0.1)]" : "border-white/5",
+                    inspectorStore.selectedStepId === nodeId ? "border-white/30 bg-white/[0.02]" : ""
                   )}>
                     <div 
                       role="button"
                       tabIndex={0}
                       className="p-5 flex items-center justify-between cursor-pointer hover:bg-white/[0.02] focus-visible:outline-none focus-visible:bg-white/[0.05] focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-inset"
-                      onClick={() => setExpandedStep(isExpanded ? null : nodeId)}
+                      onClick={() => inspectorStore.open(nodeId)}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' || e.key === ' ') {
                           e.preventDefault();
-                          setExpandedStep(isExpanded ? null : nodeId);
+                          inspectorStore.open(nodeId);
                         }
                       }}
                     >
@@ -244,60 +258,7 @@ export function ExecutionMonitor({ workflowId, executionId }: { workflowId: stri
                       </div>
                     </div>
 
-                    <AnimatePresence>
-                      {isExpanded && (
-                        <motion.div 
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: 'auto', opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          className="border-t border-white/5 bg-[#050505]"
-                        >
-                          <div className="p-5 space-y-6">
-                            
-                            {/* AI Reasoning Panel (if applicable) */}
-                            {reasonText && (
-                              <div className="space-y-2">
-                                <h4 className="text-[11px] font-mono uppercase tracking-widest text-gray-500 flex items-center gap-2">
-                                  <BrainCircuit className="h-4 w-4 text-purple-400" /> AI Reasoning
-                                </h4>
-                                <div className="bg-purple-500/5 border border-purple-500/10 rounded-lg p-4 text-sm text-purple-200/80 italic leading-relaxed">
-                                  {reasonText}
-                                </div>
-                              </div>
-                            )}
 
-                            {/* Logs Viewer for this step */}
-                            <div className="space-y-2">
-                              <h4 className="text-[11px] font-mono uppercase tracking-widest text-gray-500 flex items-center gap-2">
-                                <Terminal className="h-4 w-4 text-gray-400" /> Execution Logs
-                              </h4>
-                              {nodeLogs.length === 0 ? (
-                                <p className="text-sm text-gray-600 font-mono">No logs generated for this step.</p>
-                              ) : (
-                                <div className="bg-[#0a0a0a] border border-white/5 rounded-lg overflow-hidden font-mono text-[11px]">
-                                  {nodeLogs.map((log: any, lIdx: number) => {
-                                    const time = new Date(log.timestamp);
-                                    const levelColor = 
-                                      log.level === 'INFO' ? 'text-blue-400' :
-                                      log.level === 'ERROR' ? 'text-red-400' :
-                                      log.level === 'WARN' ? 'text-yellow-400' : 'text-green-400';
-                                    
-                                    return (
-                                      <div key={lIdx} className="flex gap-4 p-2.5 border-b border-white/5 last:border-0 hover:bg-white/5">
-                                        <span className="text-gray-600 shrink-0">{format(time, 'HH:mm:ss.SSS')}</span>
-                                        <span className={cn(levelColor, "font-bold w-16 shrink-0")}>{log.level}</span>
-                                        <span className="text-gray-300 break-words">{log.reason || log.message || JSON.stringify(log)}</span>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              )}
-                            </div>
-
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
                   </div>
                 </div>
               </motion.div>
@@ -344,6 +305,22 @@ export function ExecutionMonitor({ workflowId, executionId }: { workflowId: stri
 
         </div>
       </main>
+
+      {/* Slide-in Inspector Panel */}
+      {activeExecution?.id && workflow?.nodes && (
+        <NodeInspector 
+          executionId={activeExecution.id} 
+          workflowNodes={workflow.nodes} 
+        />
+      )}
+
+      {/* Full-screen Replay Mode */}
+      {activeExecution?.id && workflow?.id && (
+        <ReplayMode 
+          executionId={activeExecution.id}
+          workflowId={workflow.id}
+        />
+      )}
     </div>
   );
 }

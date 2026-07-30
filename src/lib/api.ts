@@ -79,6 +79,21 @@ export const api = {
   getWorkflow: (id: string) => fetcher<Workflow>(`/workflows/${id}`),
   getWorkflowVersions: (id: string) => fetcher<WorkflowVersion[]>(`/workflows/${id}/versions`),
   compareWorkflowVersions: (id: string, v1: number, v2: number) => fetcher<VersionDiff>(`/workflows/${id}/versions/compare?v1=${v1}&v2=${v2}`),
+  rollbackWorkflowVersion: (id: string, versionNumber: number, strategy: 'restore-as-draft' | 'replace-draft' | 'new-version') => 
+    fetcher<Workflow>(`/workflows/${id}/versions/rollback`, { method: 'POST', body: JSON.stringify({ targetVersionNumber: versionNumber, strategy }) }),
+  getAnalytics: (range: string) => fetcher<any>(`/analytics?range=${range}`),
+  getAuditLogs: (params: { range?: string; eventType?: string; workflowId?: string; search?: string; cursor?: string; limit?: number }) => {
+    const qs = new URLSearchParams();
+    if (params.range) qs.set('range', params.range);
+    if (params.eventType) qs.set('eventType', params.eventType);
+    if (params.workflowId) qs.set('workflowId', params.workflowId);
+    if (params.search) qs.set('search', params.search);
+    if (params.cursor) qs.set('cursor', params.cursor);
+    if (params.limit) qs.set('limit', String(params.limit));
+    return fetcher<{ logs: any[]; nextCursor: string | null; hasMore: boolean }>(`/audit?${qs.toString()}`);
+  },
+  getAuditLog: (id: string) => fetcher<any>(`/audit/${id}`),
+  exportAuditLogs: (range: string, format: 'csv' | 'json') => `/api/audit/export?range=${range}&format=${format}`,
   createWorkflow: (data: Partial<Workflow>) => fetcher<Workflow>('/workflows', { method: 'POST', body: JSON.stringify(data) }),
   updateWorkflow: (id: string, data: Partial<Workflow>) => fetcher<Workflow>(`/workflows/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteWorkflow: (id: string) => fetcher<{ success: boolean }>(`/workflows/${id}`, { method: 'DELETE' }),
@@ -86,9 +101,11 @@ export const api = {
   executeWorkflow: (id: string, input: Record<string, unknown> = {}) => fetcher<Execution>(`/workflows/${id}/execute`, { method: 'POST', body: JSON.stringify({ input }) }),
   getExecution: (id: string) => fetcher<Execution>(`/runs/${id}`),
   getExecutionLogs: (id: string) => fetcher<ExecutionLog[]>(`/runs/${id}/logs`),
+  getExecutionSteps: (id: string) => fetcher<import('../types/inspector').InspectorStepData[]>(`/runs/${id}/steps`),
   resumeExecution: (id: string) => fetcher<Execution>(`/runs/${id}/resume`, { method: 'POST' }),
   cancelExecution: (id: string) => fetcher<Execution>(`/runs/${id}/cancel`, { method: 'POST' }),
   retryExecution: (id: string) => fetcher<Execution>(`/runs/${id}/retry`, { method: 'POST' }),
+
   
   getHistory: () => fetcher<Execution[]>('/history'),
   rerunExecution: (id: string, input?: Record<string, unknown>) => fetcher<Execution>(`/history/${id}/rerun`, { method: 'POST', body: JSON.stringify({ input }) }),

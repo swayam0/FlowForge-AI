@@ -75,3 +75,17 @@ export const useWorkflowBuilderStore = create<WorkflowBuilderState>((set) => ({
     };
   }),
 }));
+
+interface InspectorState {
+  selectedStepId: string | null;
+  isOpen: boolean;
+  open: (stepId: string) => void;
+  close: () => void;
+}
+
+export const useInspectorStore = create<InspectorState>((set) => ({
+  selectedStepId: null,
+  isOpen: false,
+  open: (stepId) => set({ selectedStepId: stepId, isOpen: true }),
+  close: () => set({ isOpen: false, selectedStepId: null }),
+}));

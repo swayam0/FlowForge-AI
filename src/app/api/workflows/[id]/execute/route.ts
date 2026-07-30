@@ -7,9 +7,10 @@ import { WorkflowRepository } from '../../../../../repositories/WorkflowReposito
 import { WorkflowRunRepository } from '../../../../../repositories/WorkflowRunRepository';
 import { LoggingService } from '../../../../../server/services/LoggingService';
 import { WorkflowEngine } from '../../../../../server/engine/WorkflowEngine';
-
 import { WorkflowVersionModel } from '../../../../../models/WorkflowVersion';
 import { ExecuteWorkflowSchema } from '../../../../../validators/api.schema';
+import { logAuditEvent } from '../../../../../server/AuditService';
+import { AuditEventType } from '../../../../../types/auditLog';
 
 const workflowRepo = new WorkflowRepository();
 const runRepo = new WorkflowRunRepository();
@@ -33,6 +34,17 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
     }
 
     const executionId = await engine.startRun(targetVersionId, input);
+
+    logAuditEvent({
+      eventType: AuditEventType.EXECUTION_STARTED,
+      resourceType: 'EXECUTION',
+      resourceId: executionId,
+      workflowId: params.id,
+      runId: executionId,
+      actor: 'system',
+      summary: `Execution started for workflow`,
+      metadata: { input },
+    });
     
     return successResponse({ executionId }, 'Execution started', 201);
   } catch (error) {

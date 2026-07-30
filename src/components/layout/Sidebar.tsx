@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, GitBranch, History, CheckSquare, Settings, PlayCircle, ChevronDown, ChevronsUpDown, User, LogOut } from 'lucide-react';
+import { LayoutDashboard, GitBranch, History, CheckSquare, Settings, PlayCircle, ChevronDown, ChevronsUpDown, User, LogOut, Shield, BarChart2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 
@@ -11,11 +11,13 @@ export function Sidebar() {
   const [isWorkspaceOpen, setIsWorkspaceOpen] = useState(false);
 
   const links = [
-    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-    { name: 'Workflows', href: '/workflows', icon: GitBranch },
+    { name: 'Dashboard',  href: '/dashboard',  icon: LayoutDashboard },
+    { name: 'Analytics',  href: '/dashboard',  icon: BarChart2 },
+    { name: 'Workflows',  href: '/workflows',  icon: GitBranch },
     { name: 'Executions', href: '/executions', icon: PlayCircle },
-    { name: 'Approvals', href: '/approvals', icon: CheckSquare },
-    { name: 'History', href: '/history', icon: History },
+    { name: 'Approvals',  href: '/approvals',  icon: CheckSquare },
+    { name: 'History',    href: '/history',    icon: History },
+    { name: 'Activity',   href: '/activity',   icon: Shield },
   ];
 
   return (

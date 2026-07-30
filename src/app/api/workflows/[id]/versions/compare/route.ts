@@ -43,8 +43,8 @@ export async function GET(request: Request, props: { params: Promise<{ id: strin
     };
 
     // Compare nodes
-    const nodes1 = new Map((snap1.nodes || []).map((n: any) => [n.id, n]));
-    const nodes2 = new Map((snap2.nodes || []).map((n: any) => [n.id, n]));
+    const nodes1 = new Map<string, any>((snap1.nodes || []).map((n: any) => [n.id, n]));
+    const nodes2 = new Map<string, any>((snap2.nodes || []).map((n: any) => [n.id, n]));
 
     for (const [id, n2] of nodes2) {
       if (!nodes1.has(id)) {
@@ -72,8 +72,8 @@ export async function GET(request: Request, props: { params: Promise<{ id: strin
     }
 
     // Compare edges
-    const edges1 = new Map((snap1.edges || []).map((e: any) => [e.id, e]));
-    const edges2 = new Map((snap2.edges || []).map((e: any) => [e.id, e]));
+    const edges1 = new Map<string, any>((snap1.edges || []).map((e: any) => [e.id, e]));
+    const edges2 = new Map<string, any>((snap2.edges || []).map((e: any) => [e.id, e]));
 
     for (const [id, e2] of edges2) {
       if (!edges1.has(id)) {

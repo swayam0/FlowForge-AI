@@ -1,188 +1,126 @@
-# FlowForge AI - Agentic Workflow Automation Platform
+# FlowForge AI — Controlled Agentic Workflow Automation Platform
 
-FlowForge AI is a controlled agentic workflow automation platform that allows users to define, execute, and monitor bounded business workflows. It securely blends deterministic logic, human-in-the-loop approvals, and AI-powered extraction/classification steps.
+A platform for defining and executing bounded business workflows that combine deterministic logic, AI-powered steps, and human approval gates — with full auditability, safe retry, and version history.
+
+**Live app:** https://flow-forge-ai-sooty.vercel.app/
+**Repository:** https://github.com/swayam0/FlowForge-AI
+
+---
+
+## Overview
+
+Users build a workflow visually as a graph of steps, then run it against real input and watch it execute live. Supported step types:
+
+- **Structured input** — collects the run's initial data via a form
+- **Document retrieval** — pulls relevant reference material
+- **AI extraction** — Gemini extracts structured fields from unstructured text
+- **AI classification** — Gemini assigns a label/priority
+- **Deterministic condition** — rule-based branching (no AI)
+- **Human approval** — pauses execution until a person approves/rejects
+- **Mock external action** — simulates a real-world side effect (e.g. "send email")
+- **Final report** — summarizes the run's outcome
+
+### Demo workflow: Support Ticket Triage
+A realistic example seeded into the app: a support ticket comes in, AI extracts issue details and classifies priority, a rule checks if it's critical or from an enterprise customer — if so, execution pauses for manager approval before acting; otherwise it auto-resolves. Both paths converge on a customer notification and a resolution summary.
+
+Run `npm run seed:demo` to seed this workflow with two ready-to-use sample inputs (a routine ticket and a critical enterprise ticket) — see console output after seeding for the exact payloads.
+
+---
 
 ## Architecture
 
-```text
-                 ┌─────────────────────────┐
-                 │      React Frontend     │
-                 │  Next.js + React Flow   │
-                 └────────────┬────────────┘
-                              │
-                    REST API Calls
-                              │
-        ┌─────────────────────▼─────────────────────┐
-        │         Next.js API Route Layer           │
-        └───────────────┬───────────────────────────┘
-                        │
-            Validation (Zod)
-                        │
-         Repository / Service Layer
-                        │
-        ┌───────────────▼────────────────┐
-        │        Workflow Engine         │
-        │  Deterministic Orchestrator    │
-        └───────┬───────────┬────────────┘
-                │           │
-        Strategy Pattern    │
-      (Step Executors)      │
-                │           │
-   ┌────────────┼──────────────┬────────────┐
-   │            │              │            │
-AI Extract   AI Classify   Condition    Human Approval
-   │            │              │            │
- Gemini API     │              │            │
-                │              │            │
-                └──────────────┼────────────┘
-                               │
-                     Mock External Action
-                               │
-                        Execution Logs
-                               │
-                           MongoDB Atlas 
+Frontend (Next.js 16 App Router)
+Dashboard → Workflow Builder (React Flow) → Execution Monitor → Approval Queue → History
+State: Zustand (client) + TanStack Query (server cache)
+│ REST API
+API Routes (/api/workflows, /api/runs, /api/approvals)
+Zod validation on every input
+│
+Workflow Engine (event-sourcing reducer)
+
+Strategy-pattern step executors, one class per step type
+Idempotency check (key: runId:stepId) before any write-type step
+Resume = replay execution log, skip completed steps — no in-memory state
+Retry = only failed steps, idempotency-safe
+Reason field populated at every branching/AI decision point
+│
+Data Layer (MongoDB Atlas + Mongoose)
+Workflow → WorkflowVersion (immutable) → WorkflowRun → StepExecution (log)
+→ ApprovalRequest → IdempotencyRecord
+│
+AI Layer (Gemini via GeminiProvider/AIService)
+JSON-validated responses, retry with backoff on transient failure
+
+### Key design decisions
+
+**Version immutability.** Editing a workflow never mutates an existing version — it creates a new `WorkflowVersion` snapshot. Runs are pinned to the version they executed against, so History always reflects exactly what ran, even after later edits. This is also what makes "rerun an old version with new input" straightforward.
+
+**Idempotency key excludes attempt number.** The key is `runId:stepId`, not `runId:stepId:attemptNumber`. If a crash occurs after a write action succeeds but before the DB marks the step complete, a retry would increment the attempt number — including it in the key would cause a cache miss and re-trigger the action. Keeping the key attempt-independent makes retries safe across crash recovery, not just normal retries.
+
+**Stateless resume via log replay.** The engine never holds execution state in memory. Resume works by re-walking the `StepExecution` log for a run, skipping anything already `COMPLETED`, and continuing from the first non-terminal step. This makes resume safe across process restarts and serverless cold starts.
+
+**Execution-path reasoning.** Every condition and AI-classification step writes a human-readable `reason` string (e.g. "condition field 'priority' evaluated 'HIGH', routed to branch True") to the execution log, surfaced in both the Execution Monitor and History UI — so any run's path can be explained after the fact, not just observed.
+
+---
+
+## Setup
+
+```bash
+git clone https://github.com/swayam0/FlowForge-AI.git
+cd flow-forge-ai
+npm install
+cp .env.example .env.local   # fill in real values, see below
+npm run dev
 ```
 
-### Request Lifecycle
+### Environment variables (see `.env.example`)
+- `MONGODB_URI` — MongoDB Atlas connection string
+- `GEMINI_API_KEY` — Google AI Studio API key (Auth-format keys starting `AQ.Ab` are current as of mid-2026; the app does not validate key format, it passes the key through to the SDK)
+- `GEMINI_MODEL` — defaults to `gemini-3.6-flash`; override via env var if Google updates the current model before you deploy
 
-```text
-User
-↓
-React Flow UI
-↓
-Next.js API
-↓
-Workflow Service
-↓
-Workflow Engine
-↓
-Executor Registry
-↓
-Specific Executor
-↓
-Gemini (if AI step)
-↓
-MongoDB
-↓
-Execution Result
-↓
-Frontend Updates
+### Seed demo data
+```bash
+npm run seed:demo
 ```
-The platform is built as a modern full-stack web application:
-- **Frontend**: Next.js 16 (App Router), React, Tailwind CSS, React Flow (for workflow visualization).
-- **Backend**: Next.js API Routes.
-- **Database**: MongoDB (Mongoose ORM) for persistence.
-- **AI/LLM Engine**: Google Gemini API integration for AI steps.
+Idempotent — safe to run multiple times, skips if the demo workflow already exists. Seeds "Support Ticket Triage" plus two sample input payloads (printed to console).
 
-  ```text
-  Workflow Engine
-        ↓
-    AI Service
-        ↓
-  Gemini Provider
-        ↓
-   Gemini API
-  ```
-
-### Key Components:
-- **WorkflowEngine**: The core state machine that orchestrates step execution, handles idempotency, and state passing.
-- **LoggingService**: Structured logging for AI calls, tool usage, failures, and execution paths.
-- **Approval Queue**: A system to pause execution and yield to human reviewers for sensitive actions.
-
-## Completed Scope
-- **Visual Workflow Builder**: Zod schema-validated drag-and-drop workflow builder.
-- **Supported Step Types**: Structured Input, AI Extraction, AI Classification (Routing), Deterministic Logic, Human Approval, Mock Actions, Report Generation.
-- **Execution Engine**: Reliable state passing, pausing for approvals, cancellation, resuming, and safe-retry mechanics.
-- **Idempotency**: `IdempotencyRecordModel` ensures that duplicate write actions are prevented on retries.
-- **Live Monitor**: A real-time `ExecutionMonitor` UI that visualizes the current execution path, step states, progress, and logs.
-- **History & Recovery**: Users can inspect previous runs, view logs, and rerun earlier versions of a workflow.
-
-## Demo Workflow (Support Ticket Triage)
-
-The live database is seeded with a realistic Support Ticket Triage workflow that showcases the platform's ability to blend deterministic rules with AI classification and human-in-the-loop approvals:
-
-```text
-User clicks Execute
-        │
-        ▼
-Workflow Loaded
-        │
-        ▼
-Input Step
-        │
-        ▼
-Document Retrieval
-        │
-        ▼
-AI Extraction
-        │
-        ▼
-AI Classification
-        │
-        ▼
-Condition Step
-      /      \
-   True      False
-    │          │
-    ▼          ▼
-Human       Auto Continue
-Approval
-    │
-Approve?
- │       │
-Yes      No
- │        │
- ▼        ▼
-Mock    Stop
-Action
- │
- ▼
-Generate Report
- │
- ▼
-Completed
-```
-
-## Intentionally Excluded Scope
-- **Real External Actions**: Action nodes currently perform mocked API calls/DB writes to prevent accidental side effects during evaluation.
-- **Strict RBAC**: While the system enforces approval gates, complex Role-Based Access Control (RBAC) user groups are simplified for this MVP.
-- **Visual Version Comparison**: The backend safely stores and executes specific immutable workflow versions, but a UI side-by-side visual diff tool for versions was excluded to prioritize core engine reliability.
-
-## Setup Instructions
-
-### Prerequisites
-- Node.js (v18+)
-- MongoDB Atlas (or local MongoDB) instance
-
-### Installation
-1. Clone the repository.
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Copy the environment variables:
-   ```bash
-   cp .env.example .env.local
-   ```
-4. Populate `.env.local` with your MongoDB URI and Gemini API Key.
-5. Start the development server:
-   ```bash
-   npm run dev
-   ```
+---
 
 ## Testing
-Run the focused test suite to verify the core engine, API endpoints, and schema validations:
+
 ```bash
-npm test
+npm run test        # Vitest suite
+npm run build        # type-check + build
 ```
 
-## Known Limitations
-- The React Flow topology currently assumes acyclic directed graphs (DAGs). Infinite loops are technically possible if the user constructs circular logic paths, though max-depth constraints are partially handled by the executor.
-- Large LLM context windows for massive document retrieval nodes may exceed standard rate limits on the free tier of the LLM provider.
+Test coverage includes: step executors, idempotency (retry does not re-execute completed write steps), resume/replay logic, workflow serialization (create → fetch → update lifecycle), and Mongoose schema round-tripping for edge cases like empty node configuration, as well as AI service retry delays for 429 rate limit responses.
 
-## Deployment Details
-This application can be deployed directly to Vercel:
-1. Push the repository to GitHub.
-2. Import the project in Vercel.
-3. Add the `MONGODB_URI` and `GEMINI_API_KEY` to the Vercel Environment Variables.
-4. Deploy. Next.js App Router will seamlessly host both the frontend and the API routes.
+---
+
+## What's implemented
+
+- Full workflow CRUD with versioning (immutable snapshots)
+- Visual builder (React Flow) with validation console and live node inspector
+- Execution engine: run, pause on approval, resume, retry (idempotent), cancel
+- Human approval queue with approve/reject
+- Execution history with per-run, per-step logs and path-reasoning display
+- Rerun of an older workflow version with new input
+- Live Gemini integration for extraction and classification steps
+- Structured application and AI-workflow logging throughout
+- Smart AI-request retry logic with backoff delay parsing for graceful handling of rate limits
+
+## Intentionally excluded / limited scope
+
+- **Permission enforcement** is a static per-step allowlist, not fine-grained role-based access control — sufficient to demonstrate the pattern, not production-grade authorization
+- **Single-tenant** — no user authentication/multi-tenancy; this is a demo instance, not a multi-user SaaS product
+- **Gemini free-tier rate limits** (5 requests/minute) can cause a run to fail during heavy concurrent testing. The app handles this resiliently: it catches the 429 Too Many Requests error, extracts the `retryDelay` from the API response payload, and automatically schedules a retry after the required wait time before eventually falling back to a clean `FAILED` state if limits are repeatedly exceeded.
+
+## Known limitations
+
+- `ai_extraction` does not enforce a strict output schema on the LLM's response — malformed calls fail cleanly upstream, but a technically-valid-JSON-but-wrong-shape response isn't explicitly validated against an expected schema
+
+---
+
+## Deployment
+
+Deployed on Vercel with MongoDB Atlas. Environment variables are set in the Vercel project dashboard (not committed). Serverless deployment dictates that background execution will pause or suspend upon request completion. Re-awakening execution via workflow approvals relies on event-driven continuation to execute remaining steps.

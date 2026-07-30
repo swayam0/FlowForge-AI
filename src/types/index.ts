@@ -1,3 +1,10 @@
+export type {
+  ExplanationStep,
+  ExplanationStepStatus,
+  ExplanationApproval,
+  ExecutionExplanation,
+} from './explanation';
+
 export interface WorkflowNodeData {
   label: string;
   [key: string]: unknown;

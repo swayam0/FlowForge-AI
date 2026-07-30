@@ -98,4 +98,6 @@ export const api = {
   
   getSettings: () => fetcher<Record<string, unknown>>('/settings'),
   saveSetting: (provider: string, key: string) => fetcher<{ success: boolean }>('/settings', { method: 'POST', body: JSON.stringify({ provider, key }) }),
+
+  getExplanation: (id: string) => fetcher<import('../types/explanation').ExecutionExplanation>(`/runs/${id}/explanation`),
 };

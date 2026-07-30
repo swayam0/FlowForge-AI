@@ -108,6 +108,13 @@ export interface WorkflowVersion {
   nodes: WorkflowNode[];
   edges: WorkflowEdge[];
   createdAt: string;
+  snapshot?: {
+    nodes: WorkflowNode[];
+    edges: WorkflowEdge[];
+    name?: string;
+    description?: string;
+    [key: string]: unknown;
+  };
 }
 
 export interface NodeDiff {

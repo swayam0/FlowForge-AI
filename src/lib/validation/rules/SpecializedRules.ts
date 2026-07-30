@@ -39,7 +39,7 @@ export const securityPermissionsRule: ValidationRule = {
 
     for (const node of workflow.nodes) {
       if (node.type === WorkflowStepType.HUMAN_APPROVAL) {
-        if (!node.permissions || node.permissions.length === 0) {
+        if (!node.permissions || node.permissions?.length === 0) {
           issues.push({
             id: `sec-approval-perms-${node.id}`,
             categoryId: 'Security',

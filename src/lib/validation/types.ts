@@ -1,4 +1,4 @@
-import { WorkflowNode, WorkflowEdge } from '@/types';
+import { WorkflowNode, WorkflowEdge } from '../../types/workflow';
 
 export type ValidationSeverity = 'INFO' | 'WARNING' | 'ERROR' | 'SUCCESS';
 

@@ -1,5 +1,6 @@
-import { ValidationEngine, validationRegistry } from '../ValidationEngine';
-import { WorkflowContext } from '../types';
+import { describe, it, expect } from 'vitest';
+import { ValidationEngine } from './ValidationEngine';
+import { WorkflowContext } from './types';
 import { WorkflowStepType } from '@/types/common';
 
 // Helper to build a simple workflow context

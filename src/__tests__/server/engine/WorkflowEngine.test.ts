@@ -3,13 +3,12 @@ import { WorkflowEngine } from '@/server/engine/WorkflowEngine';
 import { WorkflowRepository } from '@/repositories/WorkflowRepository';
 import { WorkflowRunRepository } from '@/repositories/WorkflowRunRepository';
 import { LoggingService } from '@/server/services/LoggingService';
-import { WorkflowStepType, ExecutionStatus } from '@/types/common';
+import { WorkflowStepType, ExecutionStatus, EventType } from '@/types/common';
 import { WorkflowRunModel } from '@/models/WorkflowRun';
 import { ApprovalModel } from '@/models/Approval';
 import { StepExecutionModel } from '@/models/StepExecution';
 import { WorkflowVersionModel } from '@/models/WorkflowVersion';
 import mongoose from 'mongoose';
-import { EventType } from '@/types/common';
 
 vi.mock('@/server/ai/AIService', () => {
   return {
@@ -134,10 +133,12 @@ describe('WorkflowEngine', () => {
     const workflow = await workflowRepo.create({
       name: 'Idempotency Test',
       nodes: [
+        { id: 'start', type: WorkflowStepType.STRUCTURED_INPUT, label: 'Start', configuration: {}, position: { x: 0, y: 0 } },
         { id: 'node-1', type: WorkflowStepType.MOCK_EXTERNAL_ACTION, label: 'Action 1', configuration: { actionType: 'HTTP POST' }, position: { x: 0, y: 0 } },
         { id: 'node-2', type: WorkflowStepType.FINAL_REPORT, label: 'End', configuration: {}, position: { x: 0, y: 0 } }
       ],
       edges: [
+        { id: 'e0', source: 'start', target: 'node-1' },
         { id: 'e1', source: 'node-1', target: 'node-2' }
       ]
     }, 'system');

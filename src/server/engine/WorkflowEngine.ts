@@ -26,6 +26,12 @@ export class WorkflowEngine {
   }
 
   async startRun(workflowVersionId: string, input: Record<string, any>): Promise<string> {
+    const workflow = await this.getWorkflowVersionSnapshot(workflowVersionId);
+    if (!workflow) {
+      throw new Error('Workflow version not found');
+    }
+    this.validateWorkflow(workflow);
+
     const run = await this.runRepo.startRun({
       workflowVersionId,
       input,
@@ -46,6 +52,59 @@ export class WorkflowEngine {
       return workflowDoc ? workflowDoc : null;
     }
     return versionDoc.snapshot as any;
+  }
+
+  private validateWorkflow(workflow: any) {
+    if (!workflow.nodes || workflow.nodes.length === 0) {
+      throw new Error('Workflow must have at least one node');
+    }
+    
+    const startNodes = workflow.nodes.filter((n: any) => n.type === 'structured_input');
+    if (startNodes.length === 0) {
+      throw new Error('Workflow must have at least one structured_input start node');
+    }
+
+    const nodeIds = new Set(workflow.nodes.map((n: any) => n.id));
+    for (const edge of workflow.edges || []) {
+      if (!nodeIds.has(edge.source)) throw new Error(`Edge references invalid source node: ${edge.source}`);
+      if (!nodeIds.has(edge.target)) throw new Error(`Edge references invalid target node: ${edge.target}`);
+    }
+
+    const adjacencyList: Record<string, string[]> = {};
+    for (const node of workflow.nodes) {
+      adjacencyList[node.id] = [];
+    }
+    for (const edge of workflow.edges || []) {
+      if (adjacencyList[edge.source]) {
+        adjacencyList[edge.source].push(edge.target);
+      }
+    }
+
+    const visited = new Set<string>();
+    const recStack = new Set<string>();
+
+    const hasCycle = (nodeId: string): boolean => {
+      if (!visited.has(nodeId)) {
+        visited.add(nodeId);
+        recStack.add(nodeId);
+
+        for (const neighbor of adjacencyList[nodeId]) {
+          if (!visited.has(neighbor) && hasCycle(neighbor)) {
+            return true;
+          } else if (recStack.has(neighbor)) {
+            return true;
+          }
+        }
+      }
+      recStack.delete(nodeId);
+      return false;
+    };
+
+    for (const node of workflow.nodes) {
+      if (hasCycle(node.id)) {
+        throw new Error('Workflow contains a cyclic dependency, which is not supported');
+      }
+    }
   }
 
   private async runExecutionLoop(runId: string): Promise<void> {

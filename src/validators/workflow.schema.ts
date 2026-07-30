@@ -10,7 +10,7 @@ export const WorkflowNodeSchema = z.object({
   id: z.string().min(1),
   type: z.nativeEnum(WorkflowStepType),
   label: z.string().min(1),
-  configuration: z.record(z.string(), z.any()), // Can be refined later based on step type
+  configuration: z.record(z.string(), z.any()).optional().default({}), // Can be refined later based on step type
   position: PositionSchema,
   permissions: z.array(z.string()).optional(),
 });
@@ -19,6 +19,7 @@ export const WorkflowEdgeSchema = z.object({
   id: z.string().min(1),
   source: z.string().min(1),
   target: z.string().min(1),
+  label: z.string().optional(),
   sourceHandle: z.string().optional(),
   targetHandle: z.string().optional(),
   condition: z.record(z.string(), z.any()).optional(),

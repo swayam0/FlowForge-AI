@@ -24,7 +24,9 @@ export class ConditionExecutor implements WorkflowStepExecutor {
     // Look at edges to determine the next node based on condition result
     // Edge condition could be stored as { result: true/false }
     const edgesFromHere = context.workflow.edges.filter(e => e.source === context.currentNode.id);
-    const targetEdge = edgesFromHere.find(e => e.condition && e.condition.result === isTrue);
+    const expectedLabel = isTrue ? 'TRUE' : 'FALSE';
+    const expectedHandle = isTrue ? 'true' : 'false';
+    const targetEdge = edgesFromHere.find(e => e.label === expectedLabel || e.sourceHandle === expectedHandle || (e.condition && e.condition.result === isTrue));
     const nextNodeId = targetEdge ? targetEdge.target : undefined;
 
     return {

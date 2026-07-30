@@ -13,15 +13,16 @@ const WorkflowNodeSchema = new Schema<WorkflowNode>({
   id: { type: String, required: true },
   type: { type: String, enum: Object.values(WorkflowStepType), required: true },
   label: { type: String, required: true },
-  configuration: { type: Schema.Types.Mixed, default: {} },
+  configuration: { type: Schema.Types.Mixed, default: () => ({}) },
   position: { type: PositionSchema, required: true },
   permissions: [{ type: String }],
-}, { _id: false });
+}, { _id: false, minimize: false });
 
 const WorkflowEdgeSchema = new Schema<WorkflowEdge>({
   id: { type: String, required: true },
   source: { type: String, required: true },
   target: { type: String, required: true },
+  label: { type: String },
   sourceHandle: { type: String },
   targetHandle: { type: String },
   condition: { type: Schema.Types.Mixed },

@@ -240,9 +240,9 @@ export class WorkflowEngine {
 
     const edges = workflow.edges.filter((e: any) => e.source === currentNode.id);
     if (edges.length === 0) return null;
-    if (edges.length === 1 && !edges[0].condition) return edges[0].target;
+    if (edges.length === 1) return edges[0].target;
 
-    return edges[0].target; 
+    throw new Error(`Multiple outgoing edges found from node ${currentNode.id} but no branch was selected by the executor.`); 
   }
 
   async pauseRun(runId: string): Promise<void> {

@@ -13,6 +13,7 @@ export interface WorkflowEdge {
   id: string;
   source: string;
   target: string;
+  label?: string;
   sourceHandle?: string;
   targetHandle?: string;
   condition?: Record<string, any>;

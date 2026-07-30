@@ -54,7 +54,34 @@ export class AIService {
         if (attempt > maxRetries) {
           throw new Error(`AI Request failed after ${maxRetries} retries. Last error: ${error.message}`);
         }
-        await this.loggingService.log(executionId, EventType.RETRY, `AI Request failed, retrying... (${attempt}/${maxRetries})`, nodeId, { error: error.message });
+
+        let delayMs = 1000; // default small delay
+        if (error.status === 429 || (error.message && error.message.includes('429'))) {
+          try {
+            let retryInfo = error.errorDetails?.find?.((d: any) => d['@type']?.includes('RetryInfo'));
+            if (!retryInfo && error.message) {
+              const match = error.message.match(/\[\{.*\}\]$/);
+              if (match) {
+                const details = JSON.parse(match[0]);
+                retryInfo = details.find((d: any) => d['@type']?.includes('RetryInfo'));
+              }
+            }
+            if (retryInfo && retryInfo.retryDelay) {
+              let delayStr = retryInfo.retryDelay;
+              if (typeof delayStr === 'string' && delayStr.endsWith('s')) {
+                delayMs = parseFloat(delayStr) * 1000;
+              } else if (typeof delayStr === 'object' && delayStr.seconds !== undefined) {
+                delayMs = (parseInt(delayStr.seconds) || 0) * 1000 + (parseInt(delayStr.nanos) || 0) / 1000000;
+              }
+              delayMs = Math.min(delayMs, 60000); // cap at 60s
+            }
+          } catch (e) {
+            // fallback to default delay
+          }
+        }
+        
+        await this.loggingService.log(executionId, EventType.RETRY, `AI Request failed, retrying in ${delayMs}ms... (${attempt}/${maxRetries})`, nodeId, { error: error.message });
+        await new Promise(resolve => setTimeout(resolve, delayMs));
       }
     }
   }
@@ -65,7 +92,7 @@ export class AIService {
   }
 
   async classify(executionId: string, nodeId: string, inputData: Record<string, any>): Promise<any> {
-    const prompt = `Classify the document priority as: LOW, MEDIUM, or HIGH. Return JSON only in format: { "priority": "HIGH", "reasoning": "Explain why this priority was chosen" }. Never return markdown.`;
+    const prompt = `Classify the document priority as: LOW, MEDIUM, HIGH, or CRITICAL. Return JSON only in format: { "priority": "CRITICAL", "reasoning": "Explain why this priority was chosen" }. Never return markdown.`;
     return this.executeWithRetry(executionId, nodeId, prompt, inputData);
   }
 }

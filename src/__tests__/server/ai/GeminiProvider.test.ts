@@ -29,7 +29,7 @@ describe('GeminiProvider', () => {
   });
 
   it('should return correct model name', () => {
-    expect(provider.getModelName()).toBe('gemini-1.5-pro'); // default
+    expect(provider.getModelName()).toBe('gemini-3.6-flash'); // default
   });
 
   it('should generate JSON correctly', async () => {

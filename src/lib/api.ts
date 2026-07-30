@@ -10,7 +10,7 @@ async function fetcher(endpoint: string, options: RequestInit = {}) {
   });
   const data = await res.json();
   if (!data.success) {
-    console.error('[API Fetcher Error]', data);
+    console.error('[API Fetcher Error]', JSON.stringify(data, null, 2));
     const errorDetails = data.errors && data.errors.length > 0 ? ': ' + JSON.stringify(data.errors) : '';
     throw new Error((data.message || 'API Request Failed') + errorDetails);
   }

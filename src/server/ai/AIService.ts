@@ -27,7 +27,7 @@ export class AIService {
     prompt: string, 
     context: Record<string, any>
   ): Promise<any> {
-    const maxRetries = 1;
+    const maxRetries = 3;
     let attempt = 0;
     const provider = await this.getProvider();
 
